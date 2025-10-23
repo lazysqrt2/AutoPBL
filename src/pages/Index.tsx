@@ -1054,27 +1054,12 @@ print("Vectors:", X.toarray())`}
         </div>
       </div>
 
-      {/* Right sidebar */}
+      {/* Right sidebar - 聊天界面 */}
       <div className="w-72 bg-white border-l border-gray-200 p-4 flex flex-col h-screen">
-        <div className="flex flex-wrap gap-2 mb-6">
-          <Button className="bg-blue-500 hover:bg-blue-600 text-xs">New Chat</Button>
-          <Button variant="outline" className="text-xs">Convert document to vector</Button>
-          <Button variant="outline" className="text-xs">History</Button>
+        <div className="mb-4">
+          <Button className="bg-blue-500 hover:bg-blue-600 text-xs w-full">New Chat</Button>
         </div>
-
-        <div className="border border-gray-200 rounded-md mb-4">
-          <div className="flex items-center p-2 border-b border-gray-200 bg-gray-50">
-            <span className="text-gray-500 mr-2">🔍</span>
-            <span className="text-sm">Query</span>
-            <span className="text-sm text-gray-500 mx-1">or</span>
-            <span className="text-sm text-blue-500">even entire documents</span>
-          </div>
-          <div className="p-4 bg-blue-100 text-center">
-            <p className="text-blue-600 font-medium">Explanation</p>
-            <ChevronDown className="inline-block text-blue-500" size={16} />
-          </div>
-        </div>
-
+        
         {/* 聊天界面 */}
         <div className="flex-1 flex flex-col">
           <ChatInterface title="TF-IDF" />
