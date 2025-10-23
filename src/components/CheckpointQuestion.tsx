@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -13,9 +13,10 @@ interface Option {
 
 interface CheckpointQuestionProps {
   sectionId: string;
+  onComplete?: (completed: boolean) => void;
 }
 
-const CheckpointQuestion = ({ sectionId }: CheckpointQuestionProps) => {
+const CheckpointQuestion = ({ sectionId, onComplete }: CheckpointQuestionProps) => {
   const [question, setQuestion] = useState<string>("");
   const [options, setOptions] = useState<Option[]>([]);
   const [correctAnswerId, setCorrectAnswerId] = useState<string>("");
@@ -47,6 +48,11 @@ const CheckpointQuestion = ({ sectionId }: CheckpointQuestionProps) => {
       setSelectedOption("");
       setIsCorrect(null);
       setIsSubmitted(false);
+      
+      // 重置完成状态
+      if (onComplete) {
+        onComplete(false);
+      }
     } catch (error) {
       console.error("Error fetching checkpoint question:", error);
       showError("Failed to load question. Please try again.");
@@ -56,9 +62,9 @@ const CheckpointQuestion = ({ sectionId }: CheckpointQuestionProps) => {
   };
 
   // 组件加载时获取问题
-  useState(() => {
+  useEffect(() => {
     fetchQuestion();
-  });
+  }, [sectionId]);
 
   // 提交答案
   const handleSubmit = () => {
@@ -69,9 +75,17 @@ const CheckpointQuestion = ({ sectionId }: CheckpointQuestionProps) => {
     setIsSubmitted(true);
     
     if (correct) {
-      showSuccess("Correct answer!");
+      showSuccess("Correct answer! You can now proceed to the next section.");
+      // 通知父组件问题已完成
+      if (onComplete) {
+        onComplete(true);
+      }
     } else {
       showError("Incorrect. Try again!");
+      // 通知父组件问题未完成
+      if (onComplete) {
+        onComplete(false);
+      }
     }
   };
 
@@ -152,6 +166,16 @@ const CheckpointQuestion = ({ sectionId }: CheckpointQuestionProps) => {
               : `The correct answer is: ${options.find(o => o.id === correctAnswerId)?.text}`
             }
           </p>
+          {isCorrect && (
+            <p className="text-sm mt-1 font-medium">
+              You can now proceed to the next section.
+            </p>
+          )}
+          {!isCorrect && (
+            <p className="text-sm mt-1">
+              Please try again or review the material before proceeding.
+            </p>
+          )}
         </div>
       )}
     </Card>

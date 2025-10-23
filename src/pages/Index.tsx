@@ -1,20 +1,76 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Check, ChevronDown, ChevronRight, ArrowLeft } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, ArrowLeft, Lock, CheckCircle2 } from "lucide-react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import ChatInterface from "@/components/ChatInterface";
 import CheckpointQuestion from "@/components/CheckpointQuestion";
+import { showError } from "@/utils/toast";
+
+// 定义章节结构
+interface Section {
+  id: string;
+  title: string;
+  parent: string;
+  order: number;
+}
 
 const Index = () => {
   const [expandedSection, setExpandedSection] = useState<string | null>("vectorization");
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showCheck, setShowCheck] = useState(false);
   const [selectedVectorMethod, setSelectedVectorMethod] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<string>("3.2");
-  const [expandedNavSection, setExpandedNavSection] = useState<string>("3");
+  const [activeSection, setActiveSection] = useState<string>("1.1");
+  const [expandedNavSection, setExpandedNavSection] = useState<string>("1");
+  
+  // 章节完成状态
+  const [completedSections, setCompletedSections] = useState<Record<string, boolean>>({
+    "1.1": false,
+    "1.2": false,
+    "1.3": false,
+    "2.1": false,
+    "2.2": false,
+    "2.3": false,
+    "3.1": false,
+    "3.2": false,
+    "3.3": false,
+    "4.1": false,
+    "4.2": false
+  });
+
+  // 章节结构数据
+  const sections: Section[] = [
+    { id: "1", title: "Introduction", parent: "", order: 1 },
+    { id: "1.1", title: "Project background", parent: "1", order: 1 },
+    { id: "1.2", title: "Concept & Theory", parent: "1", order: 2 },
+    { id: "1.3", title: "Target", parent: "1", order: 3 },
+    { id: "2", title: "Data Processing", parent: "", order: 2 },
+    { id: "2.1", title: "Background", parent: "2", order: 1 },
+    { id: "2.2", title: "Data Collection and Observation", parent: "2", order: 2 },
+    { id: "2.3", title: "Data processing", parent: "2", order: 3 },
+    { id: "3", title: "Text Vectorization", parent: "", order: 3 },
+    { id: "3.1", title: "Background", parent: "3", order: 1 },
+    { id: "3.2", title: "Concept & Theory", parent: "3", order: 2 },
+    { id: "3.3", title: "Implementation", parent: "3", order: 3 },
+    { id: "4", title: "Building & training models", parent: "", order: 4 },
+    { id: "4.1", title: "Background", parent: "4", order: 1 },
+    { id: "4.2", title: "Concept & Theory", parent: "4", order: 2 }
+  ];
+
+  // 从本地存储加载完成状态
+  useEffect(() => {
+    const savedCompletedSections = localStorage.getItem('completedSections');
+    if (savedCompletedSections) {
+      setCompletedSections(JSON.parse(savedCompletedSections));
+    }
+  }, []);
+
+  // 保存完成状态到本地存储
+  useEffect(() => {
+    localStorage.setItem('completedSections', JSON.stringify(completedSections));
+  }, [completedSections]);
 
   const toggleSection = (section: string) => {
     if (expandedSection === section) {
@@ -36,8 +92,93 @@ const Index = () => {
     }
   };
 
+  // 检查章节是否可访问
+  const isSectionAccessible = (sectionId: string): boolean => {
+    // 第一个章节总是可访问的
+    if (sectionId === "1.1") return true;
+    
+    // 找到当前章节
+    const currentSection = sections.find(s => s.id === sectionId);
+    if (!currentSection) return false;
+    
+    // 如果是父章节，检查是否有子章节可访问
+    if (!currentSection.parent) {
+      return sections.some(s => s.parent === sectionId && isSectionAccessible(s.id));
+    }
+    
+    // 找到前一个章节
+    const sameParentSections = sections.filter(s => s.parent === currentSection.parent);
+    const sortedSections = sameParentSections.sort((a, b) => a.order - b.order);
+    const currentIndex = sortedSections.findIndex(s => s.id === sectionId);
+    
+    // 如果是父章节下的第一个子章节
+    if (currentIndex === 0) {
+      // 检查父章节的前一个父章节的最后一个子章节是否已完成
+      const parentSection = sections.find(s => s.id === currentSection.parent);
+      if (!parentSection) return false;
+      
+      const parentIndex = sections.filter(s => !s.parent).findIndex(s => s.id === parentSection.id);
+      if (parentIndex === 0) return true; // 如果是第一个父章节，则可访问
+      
+      const prevParentId = sections.filter(s => !s.parent).sort((a, b) => a.order - b.order)[parentIndex - 1].id;
+      const prevParentLastChild = sections.filter(s => s.parent === prevParentId).sort((a, b) => b.order - a.order)[0];
+      
+      return completedSections[prevParentLastChild.id];
+    }
+    
+    // 否则，检查前一个章节是否已完成
+    const prevSectionId = sortedSections[currentIndex - 1].id;
+    return completedSections[prevSectionId];
+  };
+
+  // 处理章节点击
   const handleNavItemClick = (section: string) => {
-    setActiveSection(section);
+    if (isSectionAccessible(section)) {
+      setActiveSection(section);
+    } else {
+      showError("You need to complete the previous section first!");
+    }
+  };
+
+  // 处理章节完成
+  const handleSectionComplete = (sectionId: string, completed: boolean) => {
+    setCompletedSections(prev => ({
+      ...prev,
+      [sectionId]: completed
+    }));
+  };
+
+  // 获取下一个章节ID
+  const getNextSectionId = (currentId: string): string | null => {
+    const allSubSections = sections.filter(s => s.parent);
+    const sortedSections = [...allSubSections].sort((a, b) => {
+      const parentOrderA = sections.find(s => s.id === a.parent)?.order || 0;
+      const parentOrderB = sections.find(s => s.id === b.parent)?.order || 0;
+      
+      if (parentOrderA !== parentOrderB) {
+        return parentOrderA - parentOrderB;
+      }
+      
+      return a.order - b.order;
+    });
+    
+    const currentIndex = sortedSections.findIndex(s => s.id === currentId);
+    if (currentIndex === -1 || currentIndex === sortedSections.length - 1) {
+      return null;
+    }
+    
+    return sortedSections[currentIndex + 1].id;
+  };
+
+  // 处理前往下一章节
+  const handleNextSection = () => {
+    const nextSectionId = getNextSectionId(activeSection);
+    if (nextSectionId) {
+      // 确保下一章节的父章节是展开的
+      const nextSectionParent = sections.find(s => s.id === nextSectionId)?.parent || "";
+      setExpandedNavSection(nextSectionParent);
+      setActiveSection(nextSectionId);
+    }
   };
 
   // 渲染内容区域
@@ -63,7 +204,21 @@ const Index = () => {
               </ul>
             </Card>
             
-            <CheckpointQuestion sectionId="1.1" />
+            <CheckpointQuestion 
+              sectionId="1.1" 
+              onComplete={(completed) => handleSectionComplete("1.1", completed)} 
+            />
+            
+            {completedSections["1.1"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
           </div>
         );
       case "1.2":
@@ -97,7 +252,21 @@ const Index = () => {
               </ol>
             </Card>
             
-            <CheckpointQuestion sectionId="1.2" />
+            <CheckpointQuestion 
+              sectionId="1.2" 
+              onComplete={(completed) => handleSectionComplete("1.2", completed)} 
+            />
+            
+            {completedSections["1.2"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
           </div>
         );
       case "1.3":
@@ -118,7 +287,21 @@ const Index = () => {
               </ul>
             </Card>
             
-            <CheckpointQuestion sectionId="1.3" />
+            <CheckpointQuestion 
+              sectionId="1.3" 
+              onComplete={(completed) => handleSectionComplete("1.3", completed)} 
+            />
+            
+            {completedSections["1.3"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
           </div>
         );
       case "2.1":
@@ -142,7 +325,21 @@ const Index = () => {
               </ul>
             </Card>
             
-            <CheckpointQuestion sectionId="2.1" />
+            <CheckpointQuestion 
+              sectionId="2.1" 
+              onComplete={(completed) => handleSectionComplete("2.1", completed)} 
+            />
+            
+            {completedSections["2.1"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
           </div>
         );
       case "2.2":
@@ -184,7 +381,21 @@ const Index = () => {
               </div>
             </Card>
             
-            <CheckpointQuestion sectionId="2.2" />
+            <CheckpointQuestion 
+              sectionId="2.2" 
+              onComplete={(completed) => handleSectionComplete("2.2", completed)} 
+            />
+            
+            {completedSections["2.2"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
           </div>
         );
       case "2.3":
@@ -218,7 +429,21 @@ const Index = () => {
               After preprocessing, our text data will be cleaner and more suitable for analysis. The next step is to convert this processed text into numerical features using vectorization techniques.
             </p>
             
-            <CheckpointQuestion sectionId="2.3" />
+            <CheckpointQuestion 
+              sectionId="2.3" 
+              onComplete={(completed) => handleSectionComplete("2.3", completed)} 
+            />
+            
+            {completedSections["2.3"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
           </div>
         );
       case "3.1":
@@ -241,7 +466,21 @@ const Index = () => {
               </ul>
             </Card>
             
-            <CheckpointQuestion sectionId="3.1" />
+            <CheckpointQuestion 
+              sectionId="3.1" 
+              onComplete={(completed) => handleSectionComplete("3.1", completed)} 
+            />
+            
+            {completedSections["3.1"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
           </div>
         );
       case "3.2":
@@ -357,7 +596,21 @@ const Index = () => {
               </Button>
             </Card>
             
-            <CheckpointQuestion sectionId="3.2" />
+            <CheckpointQuestion 
+              sectionId="3.2" 
+              onComplete={(completed) => handleSectionComplete("3.2", completed)} 
+            />
+            
+            {completedSections["3.2"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
           </div>
         );
       case "3.3":
@@ -430,7 +683,21 @@ print("Vectors:", X.toarray())`}
               </div>
             </Card>
             
-            <CheckpointQuestion sectionId="3.3" />
+            <CheckpointQuestion 
+              sectionId="3.3" 
+              onComplete={(completed) => handleSectionComplete("3.3", completed)} 
+            />
+            
+            {completedSections["3.3"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
           </div>
         );
       case "4.1":
@@ -461,7 +728,21 @@ print("Vectors:", X.toarray())`}
               </ul>
             </Card>
             
-            <CheckpointQuestion sectionId="4.1" />
+            <CheckpointQuestion 
+              sectionId="4.1" 
+              onComplete={(completed) => handleSectionComplete("4.1", completed)} 
+            />
+            
+            {completedSections["4.1"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
           </div>
         );
       case "4.2":
@@ -519,7 +800,21 @@ print("Vectors:", X.toarray())`}
               </ul>
             </Card>
             
-            <CheckpointQuestion sectionId="4.2" />
+            <CheckpointQuestion 
+              sectionId="4.2" 
+              onComplete={(completed) => handleSectionComplete("4.2", completed)} 
+            />
+            
+            {completedSections["4.2"] && (
+              <div className="mt-6">
+                <Card className="p-6 bg-green-50">
+                  <h3 className="text-xl font-medium text-green-700 mb-2">Congratulations!</h3>
+                  <p className="text-green-700">
+                    You have completed all sections of this course on spam classification. You now have a solid understanding of text preprocessing, vectorization techniques, and machine learning models for text classification.
+                  </p>
+                </Card>
+              </div>
+            )}
           </div>
         );
       default:
@@ -554,22 +849,40 @@ print("Vectors:", X.toarray())`}
             {expandedNavSection === "1" && (
               <div className="pl-6 space-y-1 text-sm text-gray-600">
                 <div 
-                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "1.1" ? "text-blue-500" : ""}`}
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "1.1" ? "text-blue-500" : ""}`}
                   onClick={() => handleNavItemClick("1.1")}
                 >
-                  1.1 Project background
+                  <span className="mr-1">
+                    {completedSections["1.1"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("1.1") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>1.1 Project background</span>
                 </div>
                 <div 
-                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "1.2" ? "text-blue-500" : ""}`}
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "1.2" ? "text-blue-500" : ""}`}
                   onClick={() => handleNavItemClick("1.2")}
                 >
-                  1.2 Concept & Theory
+                  <span className="mr-1">
+                    {completedSections["1.2"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("1.2") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>1.2 Concept & Theory</span>
                 </div>
                 <div 
-                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "1.3" ? "text-blue-500" : ""}`}
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "1.3" ? "text-blue-500" : ""}`}
                   onClick={() => handleNavItemClick("1.3")}
                 >
-                  1.3 Target
+                  <span className="mr-1">
+                    {completedSections["1.3"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("1.3") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>1.3 Target</span>
                 </div>
               </div>
             )}
@@ -591,22 +904,40 @@ print("Vectors:", X.toarray())`}
             {expandedNavSection === "2" && (
               <div className="pl-6 space-y-1 text-sm text-gray-600">
                 <div 
-                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "2.1" ? "text-blue-500" : ""}`}
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "2.1" ? "text-blue-500" : ""}`}
                   onClick={() => handleNavItemClick("2.1")}
                 >
-                  2.1 Background
+                  <span className="mr-1">
+                    {completedSections["2.1"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("2.1") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>2.1 Background</span>
                 </div>
                 <div 
-                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "2.2" ? "text-blue-500" : ""}`}
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "2.2" ? "text-blue-500" : ""}`}
                   onClick={() => handleNavItemClick("2.2")}
                 >
-                  2.2 Data Collection and Observation
+                  <span className="mr-1">
+                    {completedSections["2.2"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("2.2") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>2.2 Data Collection and Observation</span>
                 </div>
                 <div 
-                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "2.3" ? "text-blue-500" : ""}`}
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "2.3" ? "text-blue-500" : ""}`}
                   onClick={() => handleNavItemClick("2.3")}
                 >
-                  2.3 Data processing
+                  <span className="mr-1">
+                    {completedSections["2.3"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("2.3") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>2.3 Data processing</span>
                 </div>
               </div>
             )}
@@ -628,22 +959,40 @@ print("Vectors:", X.toarray())`}
             {expandedNavSection === "3" && (
               <div className="pl-6 space-y-1 text-sm text-gray-600">
                 <div 
-                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "3.1" ? "text-blue-500" : ""}`}
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "3.1" ? "text-blue-500" : ""}`}
                   onClick={() => handleNavItemClick("3.1")}
                 >
-                  3.1 Background
+                  <span className="mr-1">
+                    {completedSections["3.1"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("3.1") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>3.1 Background</span>
                 </div>
                 <div 
-                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "3.2" ? "text-blue-500 font-medium" : ""}`}
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "3.2" ? "text-blue-500 font-medium" : ""}`}
                   onClick={() => handleNavItemClick("3.2")}
                 >
-                  3.2 Concept & Theory
+                  <span className="mr-1">
+                    {completedSections["3.2"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("3.2") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>3.2 Concept & Theory</span>
                 </div>
                 <div 
-                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "3.3" ? "text-blue-500" : ""}`}
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "3.3" ? "text-blue-500" : ""}`}
                   onClick={() => handleNavItemClick("3.3")}
                 >
-                  3.3 Implementation
+                  <span className="mr-1">
+                    {completedSections["3.3"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("3.3") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>3.3 Implementation</span>
                 </div>
               </div>
             )}
@@ -665,16 +1014,28 @@ print("Vectors:", X.toarray())`}
             {expandedNavSection === "4" && (
               <div className="pl-6 space-y-1 text-sm text-gray-600">
                 <div 
-                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "4.1" ? "text-blue-500" : ""}`}
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "4.1" ? "text-blue-500" : ""}`}
                   onClick={() => handleNavItemClick("4.1")}
                 >
-                  4.1 Background
+                  <span className="mr-1">
+                    {completedSections["4.1"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("4.1") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>4.1 Background</span>
                 </div>
                 <div 
-                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "4.2" ? "text-blue-500" : ""}`}
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "4.2" ? "text-blue-500" : ""}`}
                   onClick={() => handleNavItemClick("4.2")}
                 >
-                  4.2 Concept & Theory
+                  <span className="mr-1">
+                    {completedSections["4.2"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("4.2") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>4.2 Concept & Theory</span>
                 </div>
               </div>
             )}
