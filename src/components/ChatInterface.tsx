@@ -44,7 +44,7 @@ const ChatInterface = ({
       const newSessionId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
       
       try {
-        // 尝试调用API通知后端创建新会话
+        // 调用API通知后端创建新会话
         const response = await fetch(`${apiEndpoint}/new`, {
           method: "POST",
           headers: {
@@ -113,7 +113,8 @@ const ChatInterface = ({
         const data = await response.json();
         responseText = data.response || "I'm not sure how to respond to that.";
       } else {
-        console.warn("API call failed, using fallback response");
+        const errorData = await response.text();
+        console.warn("API call failed with status", response.status, "and data:", errorData);
         // 如果API调用失败，使用本地回退逻辑
         responseText = generateFallbackResponse(userMessage.content);
       }
@@ -129,6 +130,7 @@ const ChatInterface = ({
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error("Error sending message:", error);
+      showError("Failed to send message. Please check your connection and try again.");
       
       // 使用本地回退逻辑
       const fallbackResponse = generateFallbackResponse(userMessage.content);
