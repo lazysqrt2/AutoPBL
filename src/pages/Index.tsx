@@ -5,6 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Check, ChevronDown, ChevronRight, ArrowLeft } from "lucide-react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
+import ChatInterface from "@/components/ChatInterface";
 
 const Index = () => {
   const [expandedSection, setExpandedSection] = useState<string | null>("vectorization");
@@ -670,7 +671,7 @@ print("Vectors:", X.toarray())`}
       </div>
 
       {/* Right sidebar */}
-      <div className="w-72 bg-white border-l border-gray-200 p-4">
+      <div className="w-72 bg-white border-l border-gray-200 p-4 flex flex-col h-screen">
         <div className="flex flex-wrap gap-2 mb-6">
           <Button className="bg-blue-500 hover:bg-blue-600 text-xs">New Chat</Button>
           <Button variant="outline" className="text-xs">Convert document to vector</Button>
@@ -690,42 +691,9 @@ print("Vectors:", X.toarray())`}
           </div>
         </div>
 
-        <p className="text-sm text-blue-500 text-right mb-6">How can this be done?</p>
-
-        <div className="text-sm space-y-4">
-          <p>Good question! You can convert entire documents into vectors using methods:</p>
-          
-          <div>
-            <p className="font-medium">Bag of Words (BOW):</p>
-            <p className="text-gray-600">Counts how often each word appears in a document</p>
-          </div>
-          
-          <div>
-            <p className="font-medium">Term Frequency-Inverse Document Frequency (TF-IDF):</p>
-            <p className="text-gray-600">Weighs word counts by their importance across all documents</p>
-          </div>
-          
-          <div>
-            <p className="font-medium">Word Embeddings:</p>
-            <p className="text-gray-600">Uses models like Word2Vec to capture semantic meaning in dense vectors</p>
-          </div>
-          
-          <p>These methods will be detailed in the next steps. Would you like to learn about any of them now?</p>
-        </div>
-
-        <div className="mt-6 text-blue-500 font-medium">TF-IDF</div>
-        
-        <div className="mt-4 text-gray-500 text-sm">Generating answers...</div>
-        
-        <div className="mt-6 relative">
-          <input 
-            type="text" 
-            placeholder="Input your question..." 
-            className="w-full p-2 pr-12 border border-gray-300 rounded-md"
-          />
-          <Button className="absolute right-1 top-1 bg-blue-500 hover:bg-blue-600 h-8 px-3">
-            Send
-          </Button>
+        {/* 聊天界面 */}
+        <div className="flex-1 flex flex-col">
+          <ChatInterface title="TF-IDF" />
         </div>
       </div>
     </div>
