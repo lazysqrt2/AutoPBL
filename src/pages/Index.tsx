@@ -11,6 +11,8 @@ const Index = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showCheck, setShowCheck] = useState(false);
   const [selectedVectorMethod, setSelectedVectorMethod] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string>("3.2");
+  const [expandedNavSection, setExpandedNavSection] = useState<string>("3");
 
   const toggleSection = (section: string) => {
     if (expandedSection === section) {
@@ -24,6 +26,18 @@ const Index = () => {
     setShowCheck(true);
   };
 
+  const toggleNavSection = (section: string) => {
+    if (expandedNavSection === section) {
+      setExpandedNavSection("");
+    } else {
+      setExpandedNavSection(section);
+    }
+  };
+
+  const handleNavItemClick = (section: string) => {
+    setActiveSection(section);
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Left sidebar */}
@@ -32,53 +46,150 @@ const Index = () => {
         
         <div className="space-y-4">
           <div>
-            <div className="flex items-center text-sm mb-2">
-              <span className="mr-2">1</span>
+            <div 
+              className="flex items-center text-sm mb-2 cursor-pointer" 
+              onClick={() => toggleNavSection("1")}
+            >
+              <span className="mr-2">
+                {expandedNavSection === "1" ? 
+                  <ChevronDown size={14} /> : 
+                  <ChevronRight size={14} />
+                }
+              </span>
               <span>Introduction</span>
             </div>
-            <div className="pl-6 space-y-1 text-sm text-gray-600">
-              <div>1.1 Project background</div>
-              <div>1.2 Concept & Theory</div>
-              <div>1.3 Target</div>
-            </div>
+            {expandedNavSection === "1" && (
+              <div className="pl-6 space-y-1 text-sm text-gray-600">
+                <div 
+                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "1.1" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("1.1")}
+                >
+                  1.1 Project background
+                </div>
+                <div 
+                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "1.2" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("1.2")}
+                >
+                  1.2 Concept & Theory
+                </div>
+                <div 
+                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "1.3" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("1.3")}
+                >
+                  1.3 Target
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
-            <div className="flex items-center text-sm mb-2">
-              <span className="mr-2">2</span>
+            <div 
+              className="flex items-center text-sm mb-2 cursor-pointer" 
+              onClick={() => toggleNavSection("2")}
+            >
+              <span className="mr-2">
+                {expandedNavSection === "2" ? 
+                  <ChevronDown size={14} /> : 
+                  <ChevronRight size={14} />
+                }
+              </span>
               <span>Data Processing</span>
             </div>
-            <div className="pl-6 space-y-1 text-sm text-gray-600">
-              <div>2.1 Background</div>
-              <div>2.2 Data Collection and Observation</div>
-              <div>2.3 Data processing</div>
-            </div>
+            {expandedNavSection === "2" && (
+              <div className="pl-6 space-y-1 text-sm text-gray-600">
+                <div 
+                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "2.1" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("2.1")}
+                >
+                  2.1 Background
+                </div>
+                <div 
+                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "2.2" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("2.2")}
+                >
+                  2.2 Data Collection and Observation
+                </div>
+                <div 
+                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "2.3" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("2.3")}
+                >
+                  2.3 Data processing
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
-            <div className="flex items-center text-sm mb-2 font-medium">
-              <span className="mr-2">3</span>
+            <div 
+              className="flex items-center text-sm mb-2 font-medium cursor-pointer" 
+              onClick={() => toggleNavSection("3")}
+            >
+              <span className="mr-2">
+                {expandedNavSection === "3" ? 
+                  <ChevronDown size={14} /> : 
+                  <ChevronRight size={14} />
+                }
+              </span>
               <span>Text Vectorization</span>
             </div>
-            <div className="pl-6 space-y-1 text-sm text-gray-600">
-              <div>3.1 Background</div>
-              <div className="text-blue-500">3.2 Concept & Theory</div>
-              <div>3.3 Implementation</div>
-            </div>
+            {expandedNavSection === "3" && (
+              <div className="pl-6 space-y-1 text-sm text-gray-600">
+                <div 
+                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "3.1" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("3.1")}
+                >
+                  3.1 Background
+                </div>
+                <div 
+                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "3.2" ? "text-blue-500 font-medium" : ""}`}
+                  onClick={() => handleNavItemClick("3.2")}
+                >
+                  3.2 Concept & Theory
+                </div>
+                <div 
+                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "3.3" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("3.3")}
+                >
+                  3.3 Implementation
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
-            <div className="flex items-center text-sm mb-2">
-              <span className="mr-2">4</span>
+            <div 
+              className="flex items-center text-sm mb-2 cursor-pointer" 
+              onClick={() => toggleNavSection("4")}
+            >
+              <span className="mr-2">
+                {expandedNavSection === "4" ? 
+                  <ChevronDown size={14} /> : 
+                  <ChevronRight size={14} />
+                }
+              </span>
               <span>Building & training models</span>
             </div>
-            <div className="pl-6 space-y-1 text-sm text-gray-600">
-              <div>4.1 Background</div>
-              <div>4.2 Concept & Theory</div>
-            </div>
+            {expandedNavSection === "4" && (
+              <div className="pl-6 space-y-1 text-sm text-gray-600">
+                <div 
+                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "4.1" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("4.1")}
+                >
+                  4.1 Background
+                </div>
+                <div 
+                  className={`cursor-pointer hover:text-blue-500 ${activeSection === "4.2" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("4.2")}
+                >
+                  4.2 Concept & Theory
+                </div>
+              </div>
+            )}
           </div>
 
-          <button className="text-blue-500 mt-4">Return</button>
+          <button className="text-blue-500 mt-4 flex items-center">
+            <ArrowLeft size={14} className="mr-1" /> Return
+          </button>
         </div>
       </div>
 
@@ -200,10 +311,10 @@ const Index = () => {
 
       {/* Right sidebar */}
       <div className="w-72 bg-white border-l border-gray-200 p-4">
-        <div className="flex space-x-2 mb-6">
-          <Button className="bg-blue-500 hover:bg-blue-600">New Chat</Button>
-          <Button variant="outline">Convert document to vector</Button>
-          <Button variant="outline">History</Button>
+        <div className="flex flex-wrap gap-2 mb-6">
+          <Button className="bg-blue-500 hover:bg-blue-600 text-xs">New Chat</Button>
+          <Button variant="outline" className="text-xs">Convert document to vector</Button>
+          <Button variant="outline" className="text-xs">History</Button>
         </div>
 
         <div className="border border-gray-200 rounded-md mb-4">
