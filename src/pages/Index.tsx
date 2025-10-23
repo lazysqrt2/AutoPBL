@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Check, ChevronDown, ChevronRight, ArrowLeft } from "lucide-react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import ChatInterface from "@/components/ChatInterface";
+import CheckpointQuestion from "@/components/CheckpointQuestion";
 
 const Index = () => {
   const [expandedSection, setExpandedSection] = useState<string | null>("vectorization");
@@ -61,6 +62,8 @@ const Index = () => {
                 <li>Apply the knowledge to real-world data</li>
               </ul>
             </Card>
+            
+            <CheckpointQuestion sectionId="1.1" />
           </div>
         );
       case "1.2":
@@ -93,6 +96,8 @@ const Index = () => {
                 </li>
               </ol>
             </Card>
+            
+            <CheckpointQuestion sectionId="1.2" />
           </div>
         );
       case "1.3":
@@ -112,6 +117,8 @@ const Index = () => {
                 <li>Apply these concepts to build a practical spam filter</li>
               </ul>
             </Card>
+            
+            <CheckpointQuestion sectionId="1.3" />
           </div>
         );
       case "2.1":
@@ -134,6 +141,8 @@ const Index = () => {
                 <li>Helps in extracting meaningful features from the text</li>
               </ul>
             </Card>
+            
+            <CheckpointQuestion sectionId="2.1" />
           </div>
         );
       case "2.2":
@@ -174,6 +183,8 @@ const Index = () => {
                 </table>
               </div>
             </Card>
+            
+            <CheckpointQuestion sectionId="2.2" />
           </div>
         );
       case "2.3":
@@ -206,6 +217,8 @@ const Index = () => {
             <p className="text-gray-700 mb-4">
               After preprocessing, our text data will be cleaner and more suitable for analysis. The next step is to convert this processed text into numerical features using vectorization techniques.
             </p>
+            
+            <CheckpointQuestion sectionId="2.3" />
           </div>
         );
       case "3.1":
@@ -227,6 +240,8 @@ const Index = () => {
                 <li>Proper vectorization significantly impacts model performance</li>
               </ul>
             </Card>
+            
+            <CheckpointQuestion sectionId="3.1" />
           </div>
         );
       case "3.2":
@@ -341,6 +356,8 @@ const Index = () => {
                 Submit
               </Button>
             </Card>
+            
+            <CheckpointQuestion sectionId="3.2" />
           </div>
         );
       case "3.3":
@@ -412,6 +429,8 @@ print("Vectors:", X.toarray())`}
                 </pre>
               </div>
             </Card>
+            
+            <CheckpointQuestion sectionId="3.3" />
           </div>
         );
       case "4.1":
@@ -441,6 +460,8 @@ print("Vectors:", X.toarray())`}
                 </li>
               </ul>
             </Card>
+            
+            <CheckpointQuestion sectionId="4.1" />
           </div>
         );
       case "4.2":
@@ -497,6 +518,8 @@ print("Vectors:", X.toarray())`}
                 </li>
               </ul>
             </Card>
+            
+            <CheckpointQuestion sectionId="4.2" />
           </div>
         );
       default:
