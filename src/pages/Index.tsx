@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Check, ChevronDown, ChevronRight, ArrowLeft, Lock, CheckCircle2 } from "lucide-react";
-import { MadeWithDyad } from "@/components/made-with-dyad";
 import ChatInterface from "@/components/ChatInterface";
 import CheckpointQuestion from "@/components/CheckpointQuestion";
 import { showError, showSuccess } from "@/utils/toast";
@@ -1084,7 +1083,7 @@ print("Vectors:", X.toarray())`}
         <div className="flex-1 flex flex-col">
           <ChatInterface 
             key={chatKey} 
-            title="TF-IDF" 
+            title="ChatBot Assistant" 
             onNewChat={handleNewChat}
           />
         </div>
