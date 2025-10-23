@@ -7,7 +7,7 @@ import { Check, ChevronDown, ChevronRight, ArrowLeft, Lock, CheckCircle2 } from 
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import ChatInterface from "@/components/ChatInterface";
 import CheckpointQuestion from "@/components/CheckpointQuestion";
-import { showError } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
 
 // 定义章节结构
 interface Section {
@@ -24,6 +24,7 @@ const Index = () => {
   const [selectedVectorMethod, setSelectedVectorMethod] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<string>("1.1");
   const [expandedNavSection, setExpandedNavSection] = useState<string>("1");
+  const [chatKey, setChatKey] = useState<number>(0); // 用于强制重新渲染聊天组件
   
   // 章节完成状态
   const [completedSections, setCompletedSections] = useState<Record<string, boolean>>({
@@ -89,6 +90,20 @@ const Index = () => {
       setExpandedNavSection("");
     } else {
       setExpandedNavSection(section);
+    }
+  };
+
+  // 处理新聊天按钮点击
+  const handleNewChat = async () => {
+    try {
+      // 增加key值，强制重新渲染ChatInterface组件
+      setChatKey(prevKey => prevKey + 1);
+      
+      // 这里可以添加其他需要的逻辑，比如更新UI状态等
+      showSuccess("Started a new chat session");
+    } catch (error) {
+      console.error("Error starting new chat:", error);
+      showError("Failed to start new chat");
     }
   };
 
@@ -1057,12 +1072,21 @@ print("Vectors:", X.toarray())`}
       {/* Right sidebar - 聊天界面 */}
       <div className="w-72 bg-white border-l border-gray-200 p-4 flex flex-col h-screen">
         <div className="mb-4">
-          <Button className="bg-blue-500 hover:bg-blue-600 text-xs w-full">New Chat</Button>
+          <Button 
+            className="bg-blue-500 hover:bg-blue-600 text-xs w-full"
+            onClick={handleNewChat}
+          >
+            New Chat
+          </Button>
         </div>
         
         {/* 聊天界面 */}
         <div className="flex-1 flex flex-col">
-          <ChatInterface title="TF-IDF" />
+          <ChatInterface 
+            key={chatKey} 
+            title="TF-IDF" 
+            onNewChat={handleNewChat}
+          />
         </div>
       </div>
     </div>

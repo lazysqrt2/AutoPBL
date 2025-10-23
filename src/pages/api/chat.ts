@@ -3,10 +3,12 @@
 
 export async function POST(req: Request) {
   try {
-    const { message } = await req.json();
+    const { message, sessionId } = await req.json();
     
     // 模拟API响应延迟
     await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    console.log(`Processing message for session ${sessionId}: ${message}`);
     
     let response = "";
     
@@ -23,7 +25,7 @@ export async function POST(req: Request) {
       response = "I'm here to help with your questions about text vectorization and spam classification. What would you like to know?";
     }
     
-    return new Response(JSON.stringify({ response }), {
+    return new Response(JSON.stringify({ response, sessionId }), {
       headers: { 'Content-Type': 'application/json' },
       status: 200
     });

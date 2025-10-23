@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { showError } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
 
 interface Message {
   id: string;
@@ -14,18 +14,58 @@ interface Message {
 
 interface ChatInterfaceProps {
   title?: string;
+  onNewChat?: () => void;
 }
 
-const ChatInterface = ({ title = "Chat" }: ChatInterfaceProps) => {
+const ChatInterface = ({ title = "Chat", onNewChat }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string>(() => {
+    // 生成一个随机的会话ID
+    return Date.now().toString() + Math.random().toString(36).substring(2, 9);
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 自动滚动到最新消息
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // 清空聊天历史并创建新会话
+  const clearChatHistory = async () => {
+    try {
+      // 创建新的会话ID
+      const newSessionId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+      
+      // 调用API通知后端创建新会话
+      const response = await fetch("/api/chat/new", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ sessionId: newSessionId }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to create new chat session");
+      }
+      
+      // 清空消息历史
+      setMessages([]);
+      // 更新会话ID
+      setSessionId(newSessionId);
+      showSuccess("New chat session started");
+      
+      // 如果有父组件的回调，则调用
+      if (onNewChat) {
+        onNewChat();
+      }
+    } catch (error) {
+      console.error("Error creating new chat session:", error);
+      showError("Failed to create new chat session. Please try again.");
+    }
+  };
 
   // 发送消息到API并处理响应
   const sendMessage = async () => {
@@ -51,7 +91,10 @@ const ChatInterface = ({ title = "Chat" }: ChatInterfaceProps) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: userMessage.content }),
+        body: JSON.stringify({ 
+          message: userMessage.content,
+          sessionId: sessionId // 发送会话ID以便后端关联对话
+        }),
       });
       
       if (!response.ok) {
@@ -93,22 +136,6 @@ const ChatInterface = ({ title = "Chat" }: ChatInterfaceProps) => {
       e.preventDefault();
       sendMessage();
     }
-  };
-
-  // 模拟API响应（仅用于演示）
-  const simulateApiResponse = async (message: string) => {
-    // 这里只是模拟，实际应用中应该连接到真实的API
-    return new Promise<string>((resolve) => {
-      setTimeout(() => {
-        if (message.toLowerCase().includes("vector") || message.toLowerCase().includes("vectorization")) {
-          resolve("Text vectorization is the process of converting text into numerical vectors that can be used by machine learning algorithms. The three main approaches are Bag of Words (BOW), TF-IDF, and Word Embeddings.");
-        } else if (message.toLowerCase().includes("tf-idf")) {
-          resolve("TF-IDF (Term Frequency-Inverse Document Frequency) is a numerical statistic that reflects how important a word is to a document in a collection. It weighs terms based on how frequently they appear in a document and how rarely they appear across all documents.");
-        } else {
-          resolve("I'm here to help with your questions about text vectorization and spam classification. What would you like to know?");
-        }
-      }, 1000);
-    });
   };
 
   return (
