@@ -8,7 +8,7 @@ load_dotenv()
 
 # 获取API密钥和URL
 api_key = os.getenv("OPENAI_API_KEY")
-base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1/chat/completions")
+base_url = os.getenv("OPENAI_BASE_URL")
 
 def test_openai_api():
     """测试OpenAI API连接"""
@@ -25,7 +25,7 @@ def test_openai_api():
     }
     
     data = {
-        "model": "gpt-3.5-turbo",
+        "model": "claude-3-7-sonnet-20250219",
         "messages": [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": "Hello, how are you?"}
@@ -39,7 +39,9 @@ def test_openai_api():
         print(f"响应状态码: {response.status_code}")
         
         if response.status_code == 200:
-            result = response.json()
+            #result = response.json()
+            print(response)
+            result = json.loads(response.text)
             message = result["choices"][0]["message"]["content"]
             print(f"API响应成功! 回复: {message}")
             return True
