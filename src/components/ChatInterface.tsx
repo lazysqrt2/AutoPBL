@@ -12,16 +12,35 @@ interface Message {
   timestamp: Date;
 }
 
+interface Option {
+  id: string;
+  text: string;
+}
+
+interface CheckpointQuestion {
+  question: string;
+  options: Option[];
+  correctAnswerId: string;
+}
+
 interface ChatInterfaceProps {
   title?: string;
   onNewChat?: () => void;
   apiEndpoint?: string;
+  currentSection?: string;
+  sectionContent?: string;
+  lastCheckpointQuestion?: CheckpointQuestion;
+  userChoices?: Record<string, any>;
 }
 
 const ChatInterface = ({ 
   title = "Chat", 
   onNewChat, 
-  apiEndpoint = "/api/chat" 
+  apiEndpoint = "/api/chat",
+  currentSection,
+  sectionContent,
+  lastCheckpointQuestion,
+  userChoices
 }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -123,16 +142,25 @@ const ChatInterface = ({
     try {
       console.log(`Sending message to ${apiEndpoint}:`, userMessage.content);
       
+      // 准备发送到API的数据，包括上下文信息
+      const requestData = {
+        message: userMessage.content,
+        sessionId: sessionId,
+        currentSection: currentSection || "",
+        sectionContent: sectionContent || "",
+        lastCheckpointQuestion: lastCheckpointQuestion || null,
+        userChoices: userChoices || {}
+      };
+      
+      console.log("Sending context data:", requestData);
+      
       // 调用API
       const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          message: userMessage.content,
-          sessionId: sessionId
-        }),
+        body: JSON.stringify(requestData),
       });
       
       console.log("API response status:", response.status);
@@ -188,6 +216,20 @@ const ChatInterface = ({
   const generateFallbackResponse = (userMessage: string): string => {
     const message = userMessage.toLowerCase();
     
+    // 如果有当前章节信息，使用它来生成更相关的回复
+    if (currentSection) {
+      if (currentSection.startsWith("1")) {
+        return "I'm here to help you understand the basics of spam classification. This section introduces the project background and key concepts. What specific part would you like me to explain further?";
+      } else if (currentSection.startsWith("2")) {
+        return "This section covers data processing for spam classification. We need to clean and prepare text data before we can use it for machine learning. Would you like to know more about specific preprocessing steps?";
+      } else if (currentSection.startsWith("3")) {
+        return "Text vectorization is crucial for converting text into a format that machine learning algorithms can understand. The three main techniques we cover are Bag of Words, TF-IDF, and Word Embeddings. Which one would you like to explore further?";
+      } else if (currentSection.startsWith("4")) {
+        return "In this section, we're looking at building and training machine learning models for spam classification. Naive Bayes is particularly effective for text classification. What aspect of model training would you like to discuss?";
+      }
+    }
+    
+    // 通用回复
     if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
       return "Hello! How can I help you with your spam classification project today?";
     }
@@ -235,6 +277,11 @@ const ChatInterface = ({
         {messages.length === 0 ? (
           <div className="text-gray-500 text-sm">
             Ask a question about text vectorization or spam classification.
+            {currentSection && (
+              <p className="mt-2 text-xs text-blue-500">
+                Currently viewing: Section {currentSection}
+              </p>
+            )}
           </div>
         ) : (
           messages.map((message) => (

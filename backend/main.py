@@ -28,6 +28,10 @@ app.add_middleware(
 class ChatMessage(BaseModel):
     message: str
     sessionId: Optional[str] = None
+    currentSection: Optional[str] = None
+    sectionContent: Optional[str] = None
+    lastCheckpointQuestion: Optional[Dict[str, Any]] = None
+    userChoices: Optional[Dict[str, Any]] = None
 
 class SessionRequest(BaseModel):
     sessionId: str
@@ -52,24 +56,64 @@ async def chat(request: ChatMessage):
     print(f"Using API Key: {api_key[:5]}...{api_key[-5:] if len(api_key) > 10 else ''}")
     print(f"Using Base URL: {base_url}")
     print(f"Received message: {request.message}")
+    print(f"Current Section: {request.currentSection}")
+    
+    # 构建系统提示，包含当前章节内容和上下文
+    system_content = "You are an expert in project-based learning. You specialize in teaching AI and deep learning through projects. "
+    
+    # 添加当前章节信息
+    if request.currentSection and request.sectionContent:
+        system_content += f"\nCurrent section: {request.currentSection}\n"
+        system_content += f"Section content: {request.sectionContent}\n"
+    
+    # 添加最近的检查点问题
+    if request.lastCheckpointQuestion:
+        question = request.lastCheckpointQuestion.get("question", "")
+        options = request.lastCheckpointQuestion.get("options", [])
+        correct_answer_id = request.lastCheckpointQuestion.get("correctAnswerId", "")
+        
+        if question and options and correct_answer_id:
+            system_content += "\nRecent checkpoint question:\n"
+            system_content += f"Question: {question}\n"
+            system_content += "Options:\n"
+            
+            for option in options:
+                option_id = option.get("id", "")
+                option_text = option.get("text", "")
+                if option_id and option_text:
+                    is_correct = option_id == correct_answer_id
+                    system_content += f"- {option_id}: {option_text} {'(correct)' if is_correct else ''}\n"
+    
+    # 添加用户之前的选择
+    if request.userChoices:
+        system_content += "\nUser's previous choices:\n"
+        for key, value in request.userChoices.items():
+            system_content += f"- {key}: {value}\n"
+    
+    # 添加指导要求
+    system_content += """
+Task: The learner wants to discuss some content in the tutorial with you. You will be given the framework of the tutorial, 
+a summary of the learner's current progress, and the content they have questions about.
+
+Requirements:
+1. Be engaging, helpful, and ready to answer questions as long as they relate to the tutorial. Do not give away 
+   the full answer to a complex question right away. Guide the learner to think first. Progressively provide more 
+   assistance if the learner has trouble figuring out the problem on their own.
+2. If the learner deviates too much from the tutorial, remind them to stay on track.
+3. Encourage the learner when needed, such as when they have trouble fixing a bug.
+4. All math formulas should be written in LaTex format and surrounded by dollar signs ($ or $$).
+5. All hyperlinks should be written in markdown format like this: [link text](link URL).
+6. Reference the current section content and checkpoint questions when relevant to provide more personalized help.
+7. If the user asks about their previous choices or answers, provide helpful feedback based on that information.
+"""
     
     # 构造请求体
     api_request_body = {
-        "model": "claude-3-7-sonnet-20250219",  # 或者其他支持的模型
+        "model": "gpt-3.5-turbo",  # 或者其他支持的模型
         "messages": [
             {
                 "role": "system",
-                "content": "You are an expert in project-based learning. You specialize in teaching AI and deep learning through projects. " +
-                           "Task: The learner wants to discuss some content in the tutorial with you. You will be given the framework of the tutorial, " +
-                           "a summary of the learner's current progress, and the content they have questions about. " +
-                           "Requirements: " +
-                           "1. Be engaging, helpful, and ready to answer questions as long as they relate to the tutorial. Do not give away " +
-                           "the full answer to a complex question right away. Guide the learner to think first. Progressively provide more " +
-                           "assistance if the learner has trouble figuring out the problem on their own. " +
-                           "2. If the learner deviates too much from the tutorial, remind them to stay on track. " +
-                           "3. Encourage the learner when needed, such as when they have trouble fixing a bug. " +
-                           "4. All math formulas should be written in LaTex format and surrounded by dollar signs ($ or $$). " +
-                           "5. All hyperlinks should be written in markdown format like this: [link text](link URL)."
+                "content": system_content
             },
             {"role": "user", "content": request.message}
         ]

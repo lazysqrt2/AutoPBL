@@ -15,6 +15,19 @@ interface Section {
   title: string;
   parent: string;
   order: number;
+  content?: string;
+}
+
+// 定义检查点问题结构
+interface Option {
+  id: string;
+  text: string;
+}
+
+interface CheckpointQuestion {
+  question: string;
+  options: Option[];
+  correctAnswerId: string;
 }
 
 const Index = () => {
@@ -25,6 +38,9 @@ const Index = () => {
   const [activeSection, setActiveSection] = useState<string>("1.1");
   const [expandedNavSection, setExpandedNavSection] = useState<string>("1");
   const [chatKey, setChatKey] = useState<number>(0); // 用于强制重新渲染聊天组件
+  const [currentSectionContent, setCurrentSectionContent] = useState<string>("");
+  const [lastCheckpointQuestion, setLastCheckpointQuestion] = useState<CheckpointQuestion | null>(null);
+  const [userChoices, setUserChoices] = useState<Record<string, any>>({});
   
   // 章节完成状态
   const [completedSections, setCompletedSections] = useState<Record<string, boolean>>({
@@ -44,20 +60,86 @@ const Index = () => {
   // 章节结构数据
   const sections: Section[] = [
     { id: "1", title: "Introduction", parent: "", order: 1 },
-    { id: "1.1", title: "Project background", parent: "1", order: 1 },
-    { id: "1.2", title: "Concept & Theory", parent: "1", order: 2 },
-    { id: "1.3", title: "Target", parent: "1", order: 3 },
+    { 
+      id: "1.1", 
+      title: "Project background", 
+      parent: "1", 
+      order: 1,
+      content: "In this project, we will be building a spam classification system. Spam classification is a common application of Natural Language Processing (NLP) that helps filter unwanted messages from legitimate ones. Email providers, social media platforms, and messaging applications all use spam filters to protect users from unwanted or potentially harmful content. These systems analyze the content of messages to determine whether they are spam or not."
+    },
+    { 
+      id: "1.2", 
+      title: "Concept & Theory", 
+      parent: "1", 
+      order: 2,
+      content: "Spam classification is a binary classification problem in machine learning. Given a message, the system needs to classify it as either spam or not spam (ham). The process involves several key steps: Data Collection, Text Preprocessing, Feature Extraction, Model Training, and Evaluation."
+    },
+    { 
+      id: "1.3", 
+      title: "Target", 
+      parent: "1", 
+      order: 3,
+      content: "By the end of this project, you will have built a spam classification system that can accurately identify spam messages. You will also gain a deep understanding of the text processing pipeline and various machine learning techniques used in NLP."
+    },
     { id: "2", title: "Data Processing", parent: "", order: 2 },
-    { id: "2.1", title: "Background", parent: "2", order: 1 },
-    { id: "2.2", title: "Data Collection and Observation", parent: "2", order: 2 },
-    { id: "2.3", title: "Data processing", parent: "2", order: 3 },
+    { 
+      id: "2.1", 
+      title: "Background", 
+      parent: "2", 
+      order: 1,
+      content: "Before we can train a machine learning model, we need to prepare our text data. Raw text cannot be directly used by machine learning algorithms, which require numerical input. Data processing is a crucial step in any NLP pipeline. It involves cleaning, normalizing, and transforming the text data to make it suitable for analysis."
+    },
+    { 
+      id: "2.2", 
+      title: "Data Collection and Observation", 
+      parent: "2", 
+      order: 2,
+      content: "For this project, we will use a publicly available dataset of SMS messages labeled as spam or ham. Let's first take a look at some examples from the dataset to understand the nature of the data."
+    },
+    { 
+      id: "2.3", 
+      title: "Data processing", 
+      parent: "2", 
+      order: 3,
+      content: "Now that we have our dataset, we need to preprocess the text data before we can use it for training our model. Text preprocessing typically involves several steps: Lowercasing, Tokenization, Removing Punctuation, Removing Stop Words, and Stemming/Lemmatization."
+    },
     { id: "3", title: "Text Vectorization", parent: "", order: 3 },
-    { id: "3.1", title: "Background", parent: "3", order: 1 },
-    { id: "3.2", title: "Concept & Theory", parent: "3", order: 2 },
-    { id: "3.3", title: "Implementation", parent: "3", order: 3 },
+    { 
+      id: "3.1", 
+      title: "Background", 
+      parent: "3", 
+      order: 1,
+      content: "After preprocessing our text data, we need to convert it into a numerical format that machine learning algorithms can understand. This process is called text vectorization. Text vectorization transforms text into vectors (arrays of numbers) that represent the semantic meaning of the text. These vectors can then be used as features for machine learning models."
+    },
+    { 
+      id: "3.2", 
+      title: "Concept & Theory", 
+      parent: "3", 
+      order: 2,
+      content: "Word Embeddings (e.g., Word2Vec, GloVe): Get introduced to advanced techniques that capture semantic relationships between words. Analyze the Strengths and Limitations: Evaluate each vectorization method to understand their suitability for different types of NLP tasks."
+    },
+    { 
+      id: "3.3", 
+      title: "Implementation", 
+      parent: "3", 
+      order: 3,
+      content: "Now that we understand the theory behind text vectorization, let's look at how to implement these techniques in practice. The Bag of Words model represents text as a 'bag' of its words, disregarding grammar and word order but keeping track of word frequency. TF-IDF (Term Frequency-Inverse Document Frequency) weighs the frequency of a word in a document against its frequency across all documents."
+    },
     { id: "4", title: "Building & training models", parent: "", order: 4 },
-    { id: "4.1", title: "Background", parent: "4", order: 1 },
-    { id: "4.2", title: "Concept & Theory", parent: "4", order: 2 }
+    { 
+      id: "4.1", 
+      title: "Background", 
+      parent: "4", 
+      order: 1,
+      content: "After vectorizing our text data, we can now build and train machine learning models to classify messages as spam or ham. There are various algorithms that can be used for this task, including Naive Bayes, Support Vector Machines (SVM), Logistic Regression, Random Forest, and Neural Networks."
+    },
+    { 
+      id: "4.2", 
+      title: "Concept & Theory", 
+      parent: "4", 
+      order: 2,
+      content: "When building a machine learning model for spam classification, we need to consider several factors such as model selection, training process, and evaluation metrics. The choice of model depends on various factors: The size and nature of the dataset, the complexity of the classification task, the computational resources available, and the interpretability requirements."
+    }
   ];
 
   // 从本地存储加载完成状态
@@ -66,12 +148,58 @@ const Index = () => {
     if (savedCompletedSections) {
       setCompletedSections(JSON.parse(savedCompletedSections));
     }
+    
+    // 加载用户选择
+    const savedUserChoices = localStorage.getItem('userChoices');
+    if (savedUserChoices) {
+      setUserChoices(JSON.parse(savedUserChoices));
+    }
   }, []);
 
   // 保存完成状态到本地存储
   useEffect(() => {
     localStorage.setItem('completedSections', JSON.stringify(completedSections));
   }, [completedSections]);
+  
+  // 保存用户选择到本地存储
+  useEffect(() => {
+    localStorage.setItem('userChoices', JSON.stringify(userChoices));
+  }, [userChoices]);
+  
+  // 当活动章节改变时，更新当前章节内容
+  useEffect(() => {
+    const section = sections.find(s => s.id === activeSection);
+    if (section && section.content) {
+      setCurrentSectionContent(section.content);
+    } else {
+      setCurrentSectionContent("");
+    }
+    
+    // 获取当前章节的检查点问题
+    fetchCheckpointQuestion(activeSection);
+  }, [activeSection]);
+  
+  // 获取检查点问题
+  const fetchCheckpointQuestion = async (sectionId: string) => {
+    try {
+      const response = await fetch("/api/checkpoint", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ sectionId }),
+      });
+      
+      if (response.ok) {
+        const questionData = await response.json();
+        setLastCheckpointQuestion(questionData);
+      } else {
+        console.warn("Failed to fetch checkpoint question");
+      }
+    } catch (error) {
+      console.error("Error fetching checkpoint question:", error);
+    }
+  };
 
   const toggleSection = (section: string) => {
     if (expandedSection === section) {
@@ -83,6 +211,15 @@ const Index = () => {
 
   const handleAnswerSubmit = () => {
     setShowCheck(true);
+    
+    // 保存用户选择
+    if (selectedVectorMethod) {
+      const updatedChoices = {
+        ...userChoices,
+        [`section_${activeSection}_vectorMethod`]: selectedVectorMethod
+      };
+      setUserChoices(updatedChoices);
+    }
   };
 
   const toggleNavSection = (section: string) => {
@@ -161,6 +298,16 @@ const Index = () => {
       ...prev,
       [sectionId]: completed
     }));
+    
+    // 如果完成了章节，记录用户的选择
+    if (completed) {
+      const updatedChoices = {
+        ...userChoices,
+        [`section_${sectionId}_completed`]: true,
+        [`section_${sectionId}_completedAt`]: new Date().toISOString()
+      };
+      setUserChoices(updatedChoices);
+    }
   };
 
   // 获取下一个章节ID
@@ -193,6 +340,14 @@ const Index = () => {
       const nextSectionParent = sections.find(s => s.id === nextSectionId)?.parent || "";
       setExpandedNavSection(nextSectionParent);
       setActiveSection(nextSectionId);
+      
+      // 记录用户进度
+      const updatedChoices = {
+        ...userChoices,
+        lastVisitedSection: nextSectionId,
+        lastVisitedAt: new Date().toISOString()
+      };
+      setUserChoices(updatedChoices);
     }
   };
 
@@ -1089,6 +1244,10 @@ print("Vectors:", X.toarray())`}
             key={chatKey} 
             title="ChatBot Assistant" 
             onNewChat={handleNewChat}
+            currentSection={activeSection}
+            sectionContent={currentSectionContent}
+            lastCheckpointQuestion={lastCheckpointQuestion || undefined}
+            userChoices={userChoices}
           />
         </div>
       </div>
