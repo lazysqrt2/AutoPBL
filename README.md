@@ -9,79 +9,78 @@
 - 章节检查点问题
 - 学习进度跟踪
 
-## 技术栈
-
-- 前端：React, TypeScript, Tailwind CSS, shadcn/ui
-- 后端：FastAPI (Python)
-- API集成：OpenAI/Claude API
-
 ## 项目结构
 
 ```
 /
 ├── src/                # 前端源代码
+│   ├── components/     # React组件
+│   ├── pages/          # 页面组件
+│   ├── hooks/          # React钩子
+│   └── utils/          # 工具函数
 ├── backend/            # FastAPI后端代码
+│   ├── main.py         # 主应用入口
+│   └── requirements.txt # Python依赖
 ├── public/             # 静态资源
 └── dist/               # 构建输出目录
 ```
 
-## 开始使用
+## 技术栈
 
 ### 前端
+- React 18
+- TypeScript
+- Tailwind CSS
+- shadcn/ui 组件库
+- React Router
+- React Query
 
-#### 环境要求
+### 后端
+- FastAPI
+- Uvicorn
+- HTTPX
+- Python 3.11+
 
-- Node.js 16+
-- npm 或 yarn
+## 开始使用
 
-#### 安装依赖
+### 前端开发
 
+1. 安装依赖：
 ```bash
 npm install
 ```
 
-#### 开发模式
-
+2. 启动开发服务器：
 ```bash
 npm run dev
 ```
+前端开发服务器将在 http://localhost:8080 运行。
 
-#### 构建前端
-
+3. 构建前端：
 ```bash
 npm run build
 ```
 
-### 后端
+### 后端开发
 
-#### 环境要求
-
-- Python 3.11+
-- pip
-
-#### 安装依赖
-
+1. 进入后端目录：
 ```bash
 cd backend
+```
+
+2. 安装Python依赖：
+```bash
 pip install -r requirements.txt
 ```
 
-#### 配置环境变量
+3. 配置环境变量：
+   复制`.env.example`文件并重命名为`.env`，然后填写必要的环境变量。
 
-复制`backend/.env.example`文件并重命名为`.env`，然后填写必要的环境变量：
-
-```
-OPENAI_API_KEY=your_api_key_here
-OPENAI_BASE_URL=https://api.openai.com/v1/chat/completions
-PORT=8000
-```
-
-#### 启动后端服务器
-
+4. 启动后端服务器：
 ```bash
-cd backend
 uvicorn main:app --reload
 ```
+后端服务器将在 http://localhost:8000 运行。
 
 ## API端点
 
@@ -89,9 +88,15 @@ uvicorn main:app --reload
 - `POST /api/chat/new` - 创建新的聊天会话
 - `POST /api/checkpoint` - 获取章节检查点问题
 
+## API文档
+
+启动后端服务器后，可以在以下地址访问自动生成的API文档：
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
 ## 部署
 
-### 使用Docker（后端）
+### 使用Docker部署后端
 
 ```bash
 cd backend
@@ -102,10 +107,5 @@ docker run -p 8000:8000 --env-file .env learning-platform-backend
 ### 前后端集成部署
 
 1. 构建前端：`npm run build`
-2. 将构建输出（`dist`目录）复制到后端的静态文件目录
+2. 将构建输出（`dist`目录）复制到后端目录
 3. 启动后端服务器，它将同时提供API和前端静态文件
-
-## 注意事项
-
-- 确保在生产环境中安全地管理API密钥
-- 对于高流量应用，考虑添加速率限制和缓存机制
