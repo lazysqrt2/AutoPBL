@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Check, ChevronDown, ChevronRight, ArrowLeft, Lock, CheckCircle2 } from "lucide-react";
 import ChatInterface from "@/components/ChatInterface";
 import CheckpointQuestion from "@/components/CheckpointQuestion";
+import ApiStatus from "@/components/ApiStatus";
 import { showError, showSuccess } from "@/utils/toast";
 
 // 定义章节结构
@@ -1064,6 +1065,9 @@ print("Vectors:", X.toarray())`}
       {/* Main content */}
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="max-w-3xl mx-auto">
+          {/* API状态指示器 */}
+          <ApiStatus />
+          
           {renderContent()}
         </div>
       </div>

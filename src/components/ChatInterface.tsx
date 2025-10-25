@@ -30,12 +30,34 @@ const ChatInterface = ({
     // 生成一个随机的会话ID
     return Date.now().toString() + Math.random().toString(36).substring(2, 9);
   });
+  const [apiStatus, setApiStatus] = useState<"unknown" | "connected" | "error">("unknown");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 自动滚动到最新消息
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // 检查API连接状态
+  useEffect(() => {
+    const checkApiConnection = async () => {
+      try {
+        const response = await fetch("/api/health");
+        if (response.ok) {
+          setApiStatus("connected");
+          console.log("API connection successful");
+        } else {
+          setApiStatus("error");
+          console.error("API health check failed:", await response.text());
+        }
+      } catch (error) {
+        setApiStatus("error");
+        console.error("API connection error:", error);
+      }
+    };
+
+    checkApiConnection();
+  }, []);
 
   // 清空聊天历史并创建新会话
   const clearChatHistory = async () => {
@@ -55,6 +77,10 @@ const ChatInterface = ({
         
         if (!response.ok) {
           console.warn("API call to create new session failed, continuing with local session");
+          console.warn("Status:", response.status);
+          console.warn("Response:", await response.text());
+        } else {
+          console.log("New session created successfully");
         }
       } catch (error) {
         console.warn("Error calling API to create new session:", error);
@@ -95,6 +121,8 @@ const ChatInterface = ({
     setIsLoading(true);
     
     try {
+      console.log(`Sending message to ${apiEndpoint}:`, userMessage.content);
+      
       // 调用API
       const response = await fetch(apiEndpoint, {
         method: "POST",
@@ -107,16 +135,22 @@ const ChatInterface = ({
         }),
       });
       
+      console.log("API response status:", response.status);
+      
       let responseText: string;
       
       if (response.ok) {
         const data = await response.json();
+        console.log("API response data:", data);
         responseText = data.response || "I'm not sure how to respond to that.";
+        setApiStatus("connected"); // 更新API状态为已连接
       } else {
         const errorData = await response.text();
         console.warn("API call failed with status", response.status, "and data:", errorData);
         // 如果API调用失败，使用本地回退逻辑
         responseText = generateFallbackResponse(userMessage.content);
+        setApiStatus("error"); // 更新API状态为错误
+        showError(`API error: ${response.status}. Using fallback response.`);
       }
       
       // 添加AI回复到聊天记录
@@ -144,6 +178,7 @@ const ChatInterface = ({
       };
       
       setMessages(prev => [...prev, fallbackMessage]);
+      setApiStatus("error"); // 更新API状态为错误
     } finally {
       setIsLoading(false);
     }
@@ -182,9 +217,18 @@ const ChatInterface = ({
 
   return (
     <div className="flex flex-col h-full">
-      {title && (
-        <div className="text-blue-500 font-medium mb-2">{title}</div>
-      )}
+      <div className="flex justify-between items-center mb-2">
+        <div className="text-blue-500 font-medium">{title}</div>
+        <div className={`text-xs px-2 py-1 rounded-full ${
+          apiStatus === "connected" ? "bg-green-100 text-green-700" : 
+          apiStatus === "error" ? "bg-red-100 text-red-700" : 
+          "bg-gray-100 text-gray-700"
+        }`}>
+          {apiStatus === "connected" ? "API Connected" : 
+           apiStatus === "error" ? "API Error" : 
+           "API Status Unknown"}
+        </div>
+      </div>
       
       {/* 消息历史区域 */}
       <div className="flex-1 overflow-y-auto mb-4 space-y-3">
@@ -236,6 +280,16 @@ const ChatInterface = ({
           Send
         </Button>
       </div>
+      
+      {/* 新会话按钮 */}
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={clearChatHistory}
+        className="mt-2"
+      >
+        New Chat
+      </Button>
     </div>
   );
 };

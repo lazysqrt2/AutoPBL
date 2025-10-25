@@ -15,10 +15,10 @@ load_dotenv()
 
 app = FastAPI(title="Learning Platform API")
 
-# 配置CORS
+# 配置CORS - 确保允许前端域名
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 在生产环境中，应该限制为特定域名
+    allow_origins=["http://localhost:8080", "http://127.0.0.1:8080", "*"],  # 允许前端开发服务器的域名
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -48,6 +48,11 @@ async def chat(request: ChatMessage):
     if not api_key:
         raise HTTPException(status_code=500, detail="Server configuration error: API Key is missing")
     
+    # 打印调试信息
+    print(f"Using API Key: {api_key[:5]}...{api_key[-5:] if len(api_key) > 10 else ''}")
+    print(f"Using Base URL: {base_url}")
+    print(f"Received message: {request.message}")
+    
     # 构造请求体
     api_request_body = {
         "model": "gpt-3.5-turbo",  # 或者其他支持的模型
@@ -73,6 +78,7 @@ async def chat(request: ChatMessage):
     try:
         # 调用API
         async with httpx.AsyncClient() as client:
+            print(f"Sending request to: {base_url}")
             response = await client.post(
                 base_url,
                 json=api_request_body,
@@ -83,18 +89,25 @@ async def chat(request: ChatMessage):
                 timeout=30.0  # 设置超时时间
             )
             
+            print(f"Response status: {response.status_code}")
+            
             response.raise_for_status()  # 如果响应状态码不是2xx，则抛出异常
             
             data = response.json()
+            print(f"Response data: {data}")
+            
             ai_message = data["choices"][0]["message"]["content"] if "choices" in data and len(data["choices"]) > 0 else "Sorry, I could not get a response."
             
             return {"response": ai_message}
     
     except httpx.HTTPStatusError as e:
+        print(f"HTTP Status Error: {e.response.status_code} - {e.response.text}")
         raise HTTPException(status_code=e.response.status_code, detail=f"API call failed: {e.response.text}")
     except httpx.RequestError as e:
+        print(f"Request Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
     except Exception as e:
+        print(f"Unexpected Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 # 新建聊天会话API
@@ -253,6 +266,11 @@ def get_question_for_section(section_id: str) -> Dict[str, Any]:
         }
     
     return questions[section_id]
+
+# 添加健康检查端点
+@app.get("/api/health")
+async def health_check():
+    return {"status": "ok", "message": "API is running"}
 
 # 配置静态文件服务（前端构建文件）
 @app.get("/{full_path:path}")
