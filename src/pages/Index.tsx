@@ -1,5 +1,3 @@
-// 只修改1.1章节的CheckpointQuestion组件调用部分
-
 // 在renderContent函数中的case "1.1"部分
 case "1.1":
   return (

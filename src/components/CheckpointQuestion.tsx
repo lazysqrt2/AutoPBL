@@ -23,7 +23,7 @@ interface CheckpointQuestionProps {
   sessionId?: string;
   sectionContent?: string;
   onIncorrectAnswer?: (question: string, options: Option[], selectedOption: string, correctOption: string) => void;
-  allowRetry?: boolean; // 新增属性，控制是否允许重试
+  allowRetry?: boolean; // 控制是否允许重试
 }
 
 const CheckpointQuestion = ({ 
