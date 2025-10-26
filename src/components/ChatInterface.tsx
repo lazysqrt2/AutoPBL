@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
 
 interface Message {
@@ -176,6 +176,12 @@ const ChatInterface = ({
     }
   };
 
+  // 清除前端聊天记录
+  const clearMessages = () => {
+    setMessages([]);
+    showSuccess("Chat messages cleared");
+  };
+
   // 发送消息到API
   const sendMessageToAPI = async (content: string) => {
     try {
@@ -342,6 +348,27 @@ const ChatInterface = ({
         </div>
       </div>
       
+      {/* 按钮区域 */}
+      <div className="flex space-x-2 mb-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex-1 text-xs"
+          onClick={clearMessages}
+        >
+          <Trash2 className="mr-1" size={14} /> Clear
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex-1 text-xs"
+          onClick={clearChatHistory}
+          disabled={isLoading || processingAutoMessage}
+        >
+          New Chat
+        </Button>
+      </div>
+      
       {/* 消息历史区域 */}
       <div className="flex-1 overflow-y-auto mb-4 space-y-3">
         {messages.length === 0 ? (
@@ -397,17 +424,6 @@ const ChatInterface = ({
           Send
         </Button>
       </div>
-      
-      {/* 新会话按钮 */}
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={clearChatHistory}
-        className="mt-2"
-        disabled={isLoading || processingAutoMessage}
-      >
-        New Chat
-      </Button>
     </div>
   );
 };
