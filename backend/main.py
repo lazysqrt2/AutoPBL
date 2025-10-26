@@ -9,6 +9,7 @@ from pydantic import BaseModel
 import json
 from typing import Optional, Dict, Any, List
 import uvicorn
+from datetime import datetime
 
 # 加载环境变量
 load_dotenv()
@@ -39,6 +40,10 @@ class SessionRequest(BaseModel):
 class CheckpointRequest(BaseModel):
     sectionId: str
 
+# 存储会话历史的字典
+# 格式: {session_id: [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
+session_histories = {}
+
 # 聊天API路由
 @app.post("/api/chat")
 async def chat(request: ChatMessage):
@@ -52,12 +57,21 @@ async def chat(request: ChatMessage):
     if not api_key:
         raise HTTPException(status_code=500, detail="Server configuration error: API Key is missing")
     
+    # 获取会话ID，如果没有则创建一个新的
+    session_id = request.sessionId or f"session_{datetime.now().timestamp()}"
+    
+    # 获取当前会话的历史记录，如果没有则创建一个新的
+    if session_id not in session_histories:
+        session_histories[session_id] = []
+    
     # 打印调试信息
     print(f"Using API Key: {api_key[:5]}...{api_key[-5:] if len(api_key) > 10 else ''}")
     print(f"Using Base URL: {base_url}")
     print(f"Received message: {request.message}")
     print(f"Current Section: {request.currentSection}")
     print(f"User Choices: {request.userChoices}")
+    print(f"Session ID: {session_id}")
+    print(f"Current session history length: {len(session_histories[session_id])}")
     
     # 构建系统提示，包含当前章节内容和上下文
     system_content = "You are an expert in project-based learning. You specialize in teaching AI and deep learning through projects. "
@@ -106,18 +120,24 @@ Requirements:
 5. All hyperlinks should be written in markdown format like this: [link text](link URL).
 6. Reference the current section content and checkpoint questions when relevant to provide more personalized help.
 7. If the user asks about their previous choices or answers, provide helpful feedback based on that information.
+8. Remember the conversation history and refer back to previous questions and answers when appropriate.
 """
     
-    # 构造请求体
+    # 添加用户消息到会话历史
+    session_histories[session_id].append({"role": "user", "content": request.message})
+    
+    # 构造请求体，包含系统提示和会话历史
+    messages = [{"role": "system", "content": system_content}]
+    
+    # 添加历史消息，但限制数量以避免超过API限制
+    # 保留最近的10条消息
+    history_limit = 10
+    recent_history = session_histories[session_id][-history_limit:] if len(session_histories[session_id]) > history_limit else session_histories[session_id]
+    messages.extend(recent_history)
+    
     api_request_body = {
-        "model": "claude-3-7-sonnet-20250219",  # 或者其他支持的模型
-        "messages": [
-            {
-                "role": "system",
-                "content": system_content
-            },
-            {"role": "user", "content": request.message}
-        ]
+        "model": "gpt-3.5-turbo",  # 或者其他支持的模型
+        "messages": messages
     }
     
     try:
@@ -125,6 +145,7 @@ Requirements:
         async with httpx.AsyncClient() as client:
             print(f"Sending request to: {base_url}")
             print(f"System content: {system_content}")
+            print(f"Total messages sent: {len(messages)}")
             response = await client.post(
                 base_url,
                 json=api_request_body,
@@ -144,6 +165,9 @@ Requirements:
             
             ai_message = data["choices"][0]["message"]["content"] if "choices" in data and len(data["choices"]) > 0 else "Sorry, I could not get a response."
             
+            # 添加AI回复到会话历史
+            session_histories[session_id].append({"role": "assistant", "content": ai_message})
+            
             return {"response": ai_message}
     
     except httpx.HTTPStatusError as e:
@@ -162,7 +186,10 @@ async def new_chat(request: SessionRequest):
     if not request.sessionId:
         raise HTTPException(status_code=400, detail="Session ID is required")
     
-    # 这里可以添加会话管理逻辑，例如在数据库中创建新会话
+    # 清除会话历史
+    if request.sessionId in session_histories:
+        session_histories[request.sessionId] = []
+    
     print(f"Creating new chat session with ID: {request.sessionId}")
     
     return {
@@ -170,6 +197,14 @@ async def new_chat(request: SessionRequest):
         "sessionId": request.sessionId,
         "message": "New chat session created successfully"
     }
+
+# 获取会话历史API
+@app.get("/api/chat/history/{session_id}")
+async def get_chat_history(session_id: str):
+    if session_id not in session_histories:
+        return {"messages": []}
+    
+    return {"messages": session_histories[session_id]}
 
 # 检查点问题API
 @app.post("/api/checkpoint")
