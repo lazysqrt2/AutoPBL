@@ -23,6 +23,7 @@ interface CheckpointQuestionProps {
   sessionId?: string;
   sectionContent?: string;
   onIncorrectAnswer?: (question: string, options: Option[], selectedOption: string, correctOption: string) => void;
+  allowRetry?: boolean; // 新增属性，控制是否允许重试
 }
 
 const CheckpointQuestion = ({ 
@@ -30,7 +31,8 @@ const CheckpointQuestion = ({
   onComplete, 
   sessionId, 
   sectionContent = "",
-  onIncorrectAnswer
+  onIncorrectAnswer,
+  allowRetry = false // 默认不允许重试
 }: CheckpointQuestionProps) => {
   const [question, setQuestion] = useState<string>("");
   const [options, setOptions] = useState<Option[]>([]);
@@ -147,6 +149,13 @@ const CheckpointQuestion = ({
     }
   };
 
+  // 重试答题
+  const handleRetry = () => {
+    setIsSubmitted(false);
+    setIsCorrect(null);
+    setSelectedOption("");
+  };
+
   // 提交答案
   const handleSubmit = async () => {
     if (!selectedOption) return;
@@ -166,7 +175,7 @@ const CheckpointQuestion = ({
         onComplete(true);
       }
     } else {
-      showError("Incorrect. Please review the material and try again later.");
+      showError("Incorrect. Please review the material and try again.");
       
       // 通知父组件问题未完成
       if (onComplete) {
@@ -346,7 +355,7 @@ const CheckpointQuestion = ({
               isSubmitted && option.id === selectedOption && option.id !== correctAnswerId ? "bg-red-50" : ""
             }`}
           >
-            <RadioGroupItem value={option.id} id={option.id} disabled={isSubmitted} />
+            <RadioGroupItem value={option.id} id={option.id} disabled={isSubmitted && !allowRetry} />
             <Label htmlFor={option.id} className="flex-1">
               {option.text}
             </Label>
@@ -357,20 +366,43 @@ const CheckpointQuestion = ({
         ))}
       </RadioGroup>
       
-      <Button 
-        onClick={handleSubmit} 
-        disabled={!selectedOption || isSubmitted || isSummarizing}
-        className="bg-blue-500 hover:bg-blue-600"
-      >
-        {isSummarizing ? (
-          <>
-            <Loader2 className="animate-spin mr-2" size={16} />
-            Processing...
-          </>
-        ) : (
-          "Submit Answer"
-        )}
-      </Button>
+      {!isSubmitted ? (
+        <Button 
+          onClick={handleSubmit} 
+          disabled={!selectedOption || isSummarizing}
+          className="bg-blue-500 hover:bg-blue-600"
+        >
+          {isSummarizing ? (
+            <>
+              <Loader2 className="animate-spin mr-2" size={16} />
+              Processing...
+            </>
+          ) : (
+            "Submit Answer"
+          )}
+        </Button>
+      ) : (
+        <div className="flex space-x-2">
+          {allowRetry && !isCorrect && (
+            <Button 
+              onClick={handleRetry}
+              variant="outline"
+              className="border-blue-500 text-blue-500 hover:bg-blue-50"
+            >
+              Try Again
+            </Button>
+          )}
+          
+          {isCorrect && (
+            <Button 
+              className="bg-green-500 hover:bg-green-600"
+              disabled
+            >
+              Correct!
+            </Button>
+          )}
+        </div>
+      )}
       
       {isSubmitted && (
         <div className={`mt-4 p-3 rounded-md ${isCorrect ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
@@ -390,7 +422,9 @@ const CheckpointQuestion = ({
           )}
           {!isCorrect && (
             <p className="text-sm mt-1">
-              Please review the material and try again later. You can ask the chatbot for help understanding this concept.
+              {allowRetry 
+                ? "Please try again or ask the chatbot for help understanding this concept." 
+                : "Please review the material and try again later. You can ask the chatbot for help understanding this concept."}
             </p>
           )}
         </div>
