@@ -110,7 +110,7 @@ Requirements:
     
     # 构造请求体
     api_request_body = {
-        "model": "gpt-3.5-turbo",  # 或者其他支持的模型
+        "model": "claude-3-7-sonnet-20250219",  # 或者其他支持的模型
         "messages": [
             {
                 "role": "system",
