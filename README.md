@@ -28,6 +28,7 @@
 ## 技术栈
 
 ### 前端
+
 - React 18
 - TypeScript
 - Tailwind CSS
@@ -36,6 +37,7 @@
 - React Query
 
 ### 后端
+
 - FastAPI
 - Uvicorn
 - HTTPX
@@ -46,40 +48,39 @@
 ### 前端开发
 
 1. 安装依赖：
+
 ```bash
 npm install
 ```
 
 2. 启动开发服务器：
+
 ```bash
 npm run dev
 ```
-前端开发服务器将在 http://localhost:8080 运行。
 
-3. 构建前端：
-```bash
-npm run build
-```
+前端将在 http://localhost:8080 运行。
 
 ### 后端开发
 
 1. 进入后端目录：
+
 ```bash
 cd backend
 ```
 
 2. 安装Python依赖：
+
 ```bash
 pip install -r requirements.txt
 ```
 
-3. 配置环境变量：
-   复制`.env.example`文件并重命名为`.env`，然后填写必要的环境变量。
-
 4. 启动后端服务器：
+
 ```bash
-uvicorn main:app --reload
+python main.py
 ```
+
 后端服务器将在 http://localhost:8000 运行。
 
 ## API端点
@@ -87,25 +88,3 @@ uvicorn main:app --reload
 - `POST /api/chat` - 发送消息到AI助手
 - `POST /api/chat/new` - 创建新的聊天会话
 - `POST /api/checkpoint` - 获取章节检查点问题
-
-## API文档
-
-启动后端服务器后，可以在以下地址访问自动生成的API文档：
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-## 部署
-
-### 使用Docker部署后端
-
-```bash
-cd backend
-docker build -t learning-platform-backend .
-docker run -p 8000:8000 --env-file .env learning-platform-backend
-```
-
-### 前后端集成部署
-
-1. 构建前端：`npm run build`
-2. 将构建输出（`dist`目录）复制到后端目录
-3. 启动后端服务器，它将同时提供API和前端静态文件
