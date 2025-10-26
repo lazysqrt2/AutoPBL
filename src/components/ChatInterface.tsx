@@ -23,6 +23,11 @@ interface CheckpointQuestion {
   correctAnswerId: string;
 }
 
+interface AutoMessage {
+  id: string;
+  content: string;
+}
+
 interface ChatInterfaceProps {
   title?: string;
   onNewChat?: () => void;
@@ -32,6 +37,8 @@ interface ChatInterfaceProps {
   lastCheckpointQuestion?: CheckpointQuestion;
   userChoices?: Record<string, any>;
   sessionId?: string;
+  autoMessages?: AutoMessage[];
+  onAutoMessageProcessed?: (messageId: string) => void;
 }
 
 const ChatInterface = ({ 
@@ -42,7 +49,9 @@ const ChatInterface = ({
   sectionContent,
   lastCheckpointQuestion,
   userChoices = {},
-  sessionId: propSessionId
+  sessionId: propSessionId,
+  autoMessages = [],
+  onAutoMessageProcessed
 }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -52,6 +61,7 @@ const ChatInterface = ({
     return propSessionId || Date.now().toString() + Math.random().toString(36).substring(2, 9);
   });
   const [apiStatus, setApiStatus] = useState<"unknown" | "connected" | "error">("unknown");
+  const [processingAutoMessage, setProcessingAutoMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 当props中的sessionId变化时，更新本地的sessionId
@@ -86,6 +96,28 @@ const ChatInterface = ({
 
     checkApiConnection();
   }, []);
+
+  // 处理自动消息
+  useEffect(() => {
+    const processAutoMessages = async () => {
+      if (autoMessages.length > 0 && !isLoading && !processingAutoMessage) {
+        setProcessingAutoMessage(true);
+        const nextMessage = autoMessages[0];
+        
+        // 发送自动消息
+        await sendMessageToAPI(nextMessage.content);
+        
+        // 通知父组件消息已处理
+        if (onAutoMessageProcessed) {
+          onAutoMessageProcessed(nextMessage.id);
+        }
+        
+        setProcessingAutoMessage(false);
+      }
+    };
+    
+    processAutoMessages();
+  }, [autoMessages, isLoading, processingAutoMessage]);
 
   // 清空聊天历史并创建新会话
   const clearChatHistory = async () => {
@@ -133,29 +165,14 @@ const ChatInterface = ({
     }
   };
 
-  // 发送消息到API并处理响应
-  const sendMessage = async () => {
-    if (!inputValue.trim()) return;
-    
-    // 创建用户消息
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: inputValue,
-      isUser: true,
-      timestamp: new Date()
-    };
-    
-    // 添加用户消息到聊天记录
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue("");
-    setIsLoading(true);
-    
+  // 发送消息到API
+  const sendMessageToAPI = async (content: string) => {
     try {
-      console.log(`Sending message to ${apiEndpoint}:`, userMessage.content);
+      console.log(`Sending message to ${apiEndpoint}:`, content);
       
       // 准备发送到API的数据，包括上下文信息
       const requestData = {
-        message: userMessage.content,
+        message: content,
         sessionId: sessionId,
         currentSection: currentSection || "",
         sectionContent: sectionContent || "",
@@ -187,7 +204,7 @@ const ChatInterface = ({
         const errorData = await response.text();
         console.warn("API call failed with status", response.status, "and data:", errorData);
         // 如果API调用失败，使用本地回退逻辑
-        responseText = generateFallbackResponse(userMessage.content);
+        responseText = generateFallbackResponse(content);
         setApiStatus("error"); // 更新API状态为错误
         showError(`API error: ${response.status}. Using fallback response.`);
       }
@@ -201,12 +218,13 @@ const ChatInterface = ({
       };
       
       setMessages(prev => [...prev, aiMessage]);
+      return responseText;
     } catch (error) {
       console.error("Error sending message:", error);
       showError("Failed to send message. Please check your connection and try again.");
       
       // 使用本地回退逻辑
-      const fallbackResponse = generateFallbackResponse(userMessage.content);
+      const fallbackResponse = generateFallbackResponse(content);
       
       // 添加回退回复
       const fallbackMessage: Message = {
@@ -218,6 +236,30 @@ const ChatInterface = ({
       
       setMessages(prev => [...prev, fallbackMessage]);
       setApiStatus("error"); // 更新API状态为错误
+      return fallbackResponse;
+    }
+  };
+
+  // 发送消息
+  const sendMessage = async () => {
+    if (!inputValue.trim()) return;
+    
+    // 创建用户消息
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: inputValue,
+      isUser: true,
+      timestamp: new Date()
+    };
+    
+    // 添加用户消息到聊天记录
+    setMessages(prev => [...prev, userMessage]);
+    const userContent = inputValue;
+    setInputValue("");
+    setIsLoading(true);
+    
+    try {
+      await sendMessageToAPI(userContent);
     } finally {
       setIsLoading(false);
     }
@@ -226,6 +268,12 @@ const ChatInterface = ({
   // 本地回退响应生成器
   const generateFallbackResponse = (userMessage: string): string => {
     const message = userMessage.toLowerCase();
+    
+    // 如果消息包含检查点问题的错误答案
+    if (message.includes('answered a checkpoint question incorrectly') || 
+        message.includes('why my answer was wrong')) {
+      return "I see you're having trouble with a checkpoint question. Let me help you understand the concept better. The key is to focus on the core principles discussed in this section. Would you like me to explain the specific topic in more detail?";
+    }
     
     // 如果有当前章节信息，使用它来生成更相关的回复
     if (currentSection) {
@@ -310,7 +358,7 @@ const ChatInterface = ({
           ))
         )}
         
-        {isLoading && (
+        {(isLoading || processingAutoMessage) && (
           <div className="flex items-center text-gray-500 text-sm">
             <Loader2 className="animate-spin mr-2" size={16} />
             Generating response...
@@ -328,12 +376,12 @@ const ChatInterface = ({
           onKeyDown={handleKeyDown}
           placeholder="Input your question..."
           className="pr-12"
-          disabled={isLoading}
+          disabled={isLoading || processingAutoMessage}
         />
         <Button 
           className="absolute right-1 top-1 bg-blue-500 hover:bg-blue-600 h-8 px-3"
           onClick={sendMessage}
-          disabled={isLoading || !inputValue.trim()}
+          disabled={isLoading || processingAutoMessage || !inputValue.trim()}
         >
           Send
         </Button>
@@ -345,6 +393,7 @@ const ChatInterface = ({
         size="sm" 
         onClick={clearChatHistory}
         className="mt-2"
+        disabled={isLoading || processingAutoMessage}
       >
         New Chat
       </Button>

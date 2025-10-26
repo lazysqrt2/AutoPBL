@@ -153,7 +153,7 @@ Requirements:
     messages.extend(recent_history)
     
     api_request_body = {
-        "model": "gpt-3.5-turbo",  # 或者其他支持的模型
+        "model": "claude-3-7-sonnet-20250219",  # 或者其他支持的模型
         "messages": messages
     }
     
@@ -283,7 +283,7 @@ The summary should be informative enough to provide context for future discussio
     
     # 构造请求体
     api_request_body = {
-        "model": "gpt-3.5-turbo",
+        "model": "claude-3-7-sonnet-20250219",
         "messages": [
             {"role": "system", "content": "You are an expert educational content summarizer."},
             {"role": "user", "content": prompt}

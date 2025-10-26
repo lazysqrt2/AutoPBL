@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Check, RefreshCw, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 
 interface Option {
@@ -22,13 +22,15 @@ interface CheckpointQuestionProps {
   onComplete?: (completed: boolean) => void;
   sessionId?: string;
   sectionContent?: string;
+  onIncorrectAnswer?: (question: string, options: Option[], selectedOption: string, correctOption: string) => void;
 }
 
 const CheckpointQuestion = ({ 
   sectionId, 
   onComplete, 
   sessionId, 
-  sectionContent = "" 
+  sectionContent = "",
+  onIncorrectAnswer
 }: CheckpointQuestionProps) => {
   const [question, setQuestion] = useState<string>("");
   const [options, setOptions] = useState<Option[]>([]);
@@ -164,17 +166,20 @@ const CheckpointQuestion = ({
         onComplete(true);
       }
     } else {
-      showError("Incorrect. Try again!");
+      showError("Incorrect. Please review the material and try again later.");
+      
       // 通知父组件问题未完成
       if (onComplete) {
         onComplete(false);
       }
+      
+      // 如果提供了onIncorrectAnswer回调，则调用它
+      if (onIncorrectAnswer) {
+        const correctOption = options.find(o => o.id === correctAnswerId)?.text || "";
+        const selectedOptionText = options.find(o => o.id === selectedOption)?.text || "";
+        onIncorrectAnswer(question, options, selectedOptionText, correctOption);
+      }
     }
-  };
-
-  // 刷新问题
-  const handleRefresh = () => {
-    fetchQuestion();
   };
 
   // 获取本地问题数据（作为API的回退）
@@ -323,17 +328,6 @@ const CheckpointQuestion = ({
 
   return (
     <Card className="p-6 mt-8 relative">
-      <div className="absolute top-4 right-4">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleRefresh}
-          disabled={isLoading}
-        >
-          <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
-        </Button>
-      </div>
-      
       <h3 className="text-lg font-medium mb-4">Checkpoint Question</h3>
       
       <p className="mb-4">{question}</p>
@@ -352,7 +346,7 @@ const CheckpointQuestion = ({
               isSubmitted && option.id === selectedOption && option.id !== correctAnswerId ? "bg-red-50" : ""
             }`}
           >
-            <RadioGroupItem value={option.id} id={option.id} />
+            <RadioGroupItem value={option.id} id={option.id} disabled={isSubmitted} />
             <Label htmlFor={option.id} className="flex-1">
               {option.text}
             </Label>
@@ -396,7 +390,7 @@ const CheckpointQuestion = ({
           )}
           {!isCorrect && (
             <p className="text-sm mt-1">
-              Please try again or review the material before proceeding.
+              Please review the material and try again later. You can ask the chatbot for help understanding this concept.
             </p>
           )}
         </div>
