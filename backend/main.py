@@ -31,7 +31,7 @@ class ChatMessage(BaseModel):
     currentSection: Optional[str] = None
     sectionContent: Optional[str] = None
     lastCheckpointQuestion: Optional[Dict[str, Any]] = None
-    userChoices: Optional[Dict[str, Any]] = None
+    userChoices: Optional[Dict[str, Any]] = {}
 
 class SessionRequest(BaseModel):
     sessionId: str
@@ -57,6 +57,7 @@ async def chat(request: ChatMessage):
     print(f"Using Base URL: {base_url}")
     print(f"Received message: {request.message}")
     print(f"Current Section: {request.currentSection}")
+    print(f"User Choices: {request.userChoices}")
     
     # 构建系统提示，包含当前章节内容和上下文
     system_content = "You are an expert in project-based learning. You specialize in teaching AI and deep learning through projects. "
@@ -85,7 +86,7 @@ async def chat(request: ChatMessage):
                     system_content += f"- {option_id}: {option_text} {'(correct)' if is_correct else ''}\n"
     
     # 添加用户之前的选择
-    if request.userChoices:
+    if request.userChoices and len(request.userChoices) > 0:
         system_content += "\nUser's previous choices:\n"
         for key, value in request.userChoices.items():
             system_content += f"- {key}: {value}\n"
@@ -123,6 +124,7 @@ Requirements:
         # 调用API
         async with httpx.AsyncClient() as client:
             print(f"Sending request to: {base_url}")
+            print(f"System content: {system_content}")
             response = await client.post(
                 base_url,
                 json=api_request_body,

@@ -40,7 +40,7 @@ const ChatInterface = ({
   currentSection,
   sectionContent,
   lastCheckpointQuestion,
-  userChoices
+  userChoices = {}
 }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -149,10 +149,10 @@ const ChatInterface = ({
         currentSection: currentSection || "",
         sectionContent: sectionContent || "",
         lastCheckpointQuestion: lastCheckpointQuestion || null,
-        userChoices: userChoices || {}
+        userChoices: userChoices
       };
       
-      console.log("Sending context data:", requestData);
+      console.log("Sending context data:", JSON.stringify(requestData, null, 2));
       
       // 调用API
       const response = await fetch(apiEndpoint, {
