@@ -589,234 +589,758 @@ Can you explain why my answer was wrong and help me understand this concept bett
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
                     </tr>
-                  <dyad-write path="src/components/CheckpointQuestion.tsx" description="Removed refresh; send wrong answer to chat; lock section on wrong">
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } fromcomponents/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Check, Loader2 } from "lucide-react";
-import { showSuccess, showError } from "@/utils/toastinterface Option {
-  id: string;
-  text: string;
-}
-
-interface QuestionData {
-  question: string;
-  options:  correctAnswerId: string;
-}
-
-interface CheckpointQuestionProps {
-  sectionId: string;
-  onComplete?: (completed: boolean) => void;
-  sessionId?: string;
-  sectionContent?: string;
-  onIncorrectAnswer?: (question: string, options: Option[], selectedOption: string, correctOption: string) => void;
-}
-
-const CheckpointQuestion = ({ 
- , 
-  onComplete, 
-  sessionId, 
-  sectionContent = "",
-  onIncorrectAnswer
-}: CheckpointQuestionProps) => {
-  const [question, setQuestion] = useState<string>("");
-  const [options, set] = useState<Option[]>([]);
-  const [correctAnswerId, setCorrectAnswerId] = useState<string>("");
-  const [selectedOption, setSelectedOption] = useState<string>("");
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isSubmitted setIsSubmitted] = useState<boolean>(false);
-  const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
-
-  const fetchQuestion = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/checkpoint", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sectionId }),
-      });
-      questionData: QuestionData;
-      if (response.ok) {
-        questionData = await response.json();
-      } else {
-        console.warn("API failed, using local fallback data");
-        questionData = getLocalQuestionData(sectionId);
-      }
-      setQuestion(questionData.question);
-      setOptions(questionData.options);
-      setCorrectAnswerId(questionData.correctAnswerId);
-      setSelectedOption("");
-      setIsCorrect(null);
-      setIsSubmitted(false);
-      if (onComplete) onComplete(false);
-    } catch {
-      const fallbackData = getLocalQuestionData(sectionId);
-      setQuestion(fallbackData.question      setOptions(fallbackData.options);
-      setCorrectAnswerId(fallbackData.correctAnswerId);
-      console.warn("Using local fallback data due to API error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchQuestion }, [sectionId]);
-
-  const createSectionSummary = async () => {
-    if (!sessionId) return;
-    setIsSummarizing(true);
-    try {
-      const checkpointQuestion = { question, options, correctAnswerId };
-      response = await fetch("/api/summary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId,
-          sectionId,
-          sectionContent,
- checkpointQuestion,
-          userAnswer: selectedOption,
-          isCorrect: isCorrect,
-        }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Summary created successfully:", data.summary);
-      } else {
-        console.warn("Failed to create summary:", await response.text());
-      }
-    catch (error) {
-      console.error("Error creating section summary:", error);
-    } finally {
-      setIsSummarizing(false);
-    }
-  };
-
-  handleSubmit = async () => {
-    if (!selectedOption) return;
-    const correct = selectedOption === correctAnswerId;
-    setIsCorrect(correct);
-    setIsSubmitted(true);
-    if (correct) {
-      showSuccess("Correct answer! You can now proceed to the next section.");
-      awaitSectionSummary();
-      if (onComplete) onComplete(true);
-    } else {
-      showError("Incorrect. Please review the material and try again.");
-      if (onComplete) onComplete(false);
-      if (onIncorrectAnswer) {
-        const correctOption = options.find(o => o.id === correctAnswerId)?.text || "";
-        const selectedOptionText = options.find => o.id === selectedOption)?.text || "";
-        onIncorrectAnswer(question, options, selectedOptionText, correctOption);
-      }
-    }
-  };
-
-  const getLocalQuestionData = (sectionId: string):Data => {
-    // Same local questions as before
-    const questions: Record<string, QuestionData> = {
-      // ... (omitted for brevity: as original fallback data)
-    };
-    if (!questions[sectionId]) {
-      return {
-        question: "What are the three main text vectorization techniques discussed in this course?",
-        options: [
-          { id: "a", text: "Bag of Words, TF-IDF, Word Emb" },
-          { id: "b", text: "Word2Vec, GloVe, FastText" },
-          { id: "c", text: "Tokenization, Stemming, Lemmatization" },
-          { id: "d", text: "CNN, RNN, Transformer }
-        ],
-        correctAnswerId: "a",
-      };
-    }
-    return questions[sectionId];
-  };
-
-  if (isLoading && !question) {
-    return (
-      <Card className="p-6 mt-8">
-        <div className="flex items-center justify-center">
-          <Loader2 className="animate-spin mr-2" size={20} />
-          <p>Loading checkpoint question...</p>
-        </div>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="p-6 mt-8 relative">
-      <h3 className="text-lg font-medium mb-4">Checkpoint Question</h3>
-
-      <p className="mb-4">{question}</p>
-
-      <RadioGroup 
-        value={selectedOption} 
-        onValueChange={setSelectedOption}
-        className="space-y-2 mb-4"
-      >
-        {options.map((option) => (
-          <div 
-            key={option.id} 
-            className={`flex items-center space-x-2 p-2 rounded-md ${
-              isSubmitted && option correctAnswerId ? "bg-green-50" : ""
-            } ${
-              isSubmitted && option.id === selectedOption && option.id !== correctAnswerId ? "bg-red-50" : ""
-            }`}
-          >
-            <RadioGroupItem value={option.id} id={option.id} disabled={isSubmitted} />
-            <Label htmlFor={option.id} className="flex-1">
-              {option.text}
-            </Label>
-            {isSubmitted && option.id === correctAnswerId && (
-              <Check className="text-green-500" size={18} />
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    <tr>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Ham</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">I'll be there in 10 minutes. Wait for me.</td>
+                    </tr>
+                    <tr>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Spam</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">URGENT! You have won a $1,000 gift card. Call now to claim your prize: 1-800-555-1234</td>
+                    </tr>
+                    <tr>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Ham</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">Don't forget to bring the documents for the meeting tomorrow.</td>
+                    </tr>
+                    <tr>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Spam</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">50% OFF on all products! Limited time offer. Shop now at www.example.com</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+            
+            <CheckpointQuestion 
+              sectionId="2.2" 
+              onComplete={(completed) => handleSectionComplete("2.2", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
+              onIncorrectAnswer={handleIncorrectAnswer}
+            />
+            
+            {completedSections["2.2"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
             )}
           </div>
-        ))}
-      </RadioGroup>
-
-      <Button 
-        onClick={handleSubmit} 
-        disabled={!selectedOption || isSubmitted || isSummarizing}
-        className="bg-blue-500 hover:bg-blue-600"
-      >
-        {isSummarizing ? (
-          <>
-            <Loader2 className="animate-spin mr-2" size={16} />
-            Processing...
-          </>
-        ) : (
-          "Submit Answer"
-        )}
-      </Button>
-
-      {isSubmitted && (
-        <div className={`mt-4 p-3 rounded-md ${isCorrect ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-          <p className="font-medium">
-            {isCorrect ? "Correct!" : "Incorrect!"}
-          </p>
-          <p className="text-sm mt-1">
-            {isCorrect 
-              ? "Great job! You've understood this concept well." 
-              : `The correct answer is: ${options.find(o => o.id === correctAnswerId)?.text}`
-            }
-          </p>
-          {isCorrect && (
-            <p className="text-sm mt-1 font-medium">
-              You can now proceed to the next section.
+        );
+      case "2.3":
+        return (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Data Processing</h2>
+            <p className="text-gray-700 mb-4">
+              Now that we have our dataset, we need to preprocess the text data before we can use it for training our model. Text preprocessing typically involves several steps.
             </p>
-          )}
-          {!isCorrect && (
-            <p className="text-sm mt-1">
-              Please review the material and try again later. You can ask the chatbot for help understanding concept.
+            <Card className="p-4 mb-6">
+              <h3 className="font-medium mb-2">Text Preprocessing Steps</h3>
+              <ol className="list-decimal pl-5 space-y-2 text-gray-700">
+                <li>
+                  <strong>Lowercasing</strong>: Converting all text to lowercase to ensure consistency.
+                </li>
+                <li>
+                  <strong>Tokenization</strong>: Splitting the text into individual words or tokens.
+                </li>
+                <li>
+                  <strong>Removing Punctuation</strong>: Eliminating punctuation marks that don't add meaning.
+                </li>
+                <li>
+                  <strong>Removing Stop Words</strong>: Filtering out common words like "the", "is", "and" that don't carry much information.
+                </li>
+                <li>
+                  <strong>Stemming/Lemmatization</strong>: Reducing words to their root form to handle different variations of the same word.
+                </li>
+              </ol>
+            </Card>
+            <p className="text-gray-700 mb-4">
+              After preprocessing, our text data will be cleaner and more suitable for analysis. The next step is to convert this processed text into numerical features using vectorization techniques.
             </p>
-          )}
+            
+            <CheckpointQuestion 
+              sectionId="2.3" 
+              onComplete={(completed) => handleSectionComplete("2.3", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
+              onIncorrectAnswer={handleIncorrectAnswer}
+            />
+            
+            {completedSections["2.3"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      case "3.1":
+        return (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Text Vectorization Background</h2>
+            <p className="text-gray-700 mb-4">
+              After preprocessing our text data, we need to convert it into a numerical format that machine learning algorithms can understand. This process is called text vectorization.
+            </p>
+            <p className="text-gray-700 mb-4">
+              Text vectorization transforms text into vectors (arrays of numbers) that represent the semantic meaning of the text. These vectors can then be used as features for machine learning models.
+            </p>
+            <Card className="p-4 mb-6">
+              <h3 className="font-medium mb-2">Why Vectorization is Necessary</h3>
+              <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                <li>Machine learning algorithms work with numerical data, not text</li>
+                <li>Vectors capture the semantic meaning of text in a format computers can process</li>
+                <li>Different vectorization techniques capture different aspects of text</li>
+                <li>Proper vectorization significantly impacts model performance</li>
+              </ul>
+            </Card>
+            
+            <CheckpointQuestion 
+              sectionId="3.1" 
+              onComplete={(completed) => handleSectionComplete("3.1", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
+              onIncorrectAnswer={handleIncorrectAnswer}
+            />
+            
+            {completedSections["3.1"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      case "3.2":
+        return (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4">Text Vectorization Concept & Theory</h2>
+            <p className="text-gray-700 mb-4">
+              Word Embeddings (e.g., Word2Vec, GloVe): Get introduced to advanced techniques that 
+              capture semantic relationships between words.
+              Analyze the Strengths and Limitations: Evaluate each vectorization method to understand 
+              their suitability for different types of NLP tasks.
+            </p>
+
+            <div className="mb-6">
+              <p className="mb-2">What are the three text vectorization techniques we are going to explore?</p>
+              <div className="flex items-center">
+                <p className="text-sm font-medium mr-2">Your answer:</p>
+                <p className="text-sm text-blue-500">Bag of Words, TF-IDF, Word Embeddings</p>
+                {showCheck && <Check className="text-green-500 ml-2" size={20} />}
+              </div>
+            </div>
+
+            <Card className="p-4 mb-6 relative" id="section-A">
+              <div className="absolute top-2 right-2 bg-gray-700 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs">
+                A
+              </div>
+              <p className="mb-4">
+                Great! Now we will first introduce the concept of vector and text vectorization. This part 
+                will help you understand the <strong>three text vectorization techniques</strong>.
+              </p>
+
+              <div className="mb-4">
+                <div 
+                  className="flex items-center cursor-pointer" 
+                  onClick={() => toggleSection("vectorization")}
+                >
+                  {expandedSection === "vectorization" ? (
+                    <ChevronDown className="text-gray-500 mr-1" size={16} />
+                  ) : (
+                    <ChevronRight className="text-gray-500 mr-1" size={16} />
+                  )}
+                  <h3 className="font-medium">What is Text Vectorization?</h3>
+                </div>
+                
+                {expandedSection === "vectorization" && (
+                  <div className="mt-2 pl-6 text-sm text-gray-700">
+                    <p>
+                      In natural language processing (NLP), computers need a way to understand and work 
+                      with text. But machines don't "understand" language the way humans do. To make 
+                      text understandable to a machine, we must transform it into a numerical format, because 
+                      computers work with numbers. This process of converting text into numbers is called text 
+                      vectorization.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-4">
+                <div 
+                  className="flex items-center cursor-pointer" 
+                  onClick={() => toggleSection("vector")}
+                >
+                  {expandedSection === "vector" ? (
+                    <ChevronDown className="text-gray-500 mr-1" size={16} />
+                  ) : (
+                    <ChevronRight className="text-gray-500 mr-1" size={16} />
+                  )}
+                  <h3 className="font-medium">What is a Vector?</h3>
+                </div>
+                
+                {expandedSection === "vector" && (
+                  <div className="mt-2 pl-6 text-sm text-gray-700">
+                    <p>
+                      A vector is simply an array of numbers. In the context of text, we take words, 
+                      sentences, or even entire documents and convert them into vectors. Each vector 
+                      represents the text numerically so that the computer can process and analyze it.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <Card className="p-4 mb-6 relative" id="section-B">
+              <div className="absolute top-2 right-2 bg-gray-700 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs">
+                B
+              </div>
+              <p className="mb-4">How does converting text into vectors help computers process it?</p>
+
+              <RadioGroup 
+                value={selectedVectorMethod || ""} 
+                onValueChange={setSelectedVectorMethod}
+                className="space-y-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="shortlength" id="shortlength" />
+                  <Label htmlFor="shortlength">Shortened Length</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="understandable" id="understandable" />
+                  <Label htmlFor="understandable">Understandable format</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="redundancy" id="redundancy" />
+                  <Label htmlFor="redundancy">Redundancy Removal</Label>
+                </div>
+              </RadioGroup>
+
+              <Button 
+                className="mt-4 bg-blue-500 hover:bg-blue-600" 
+                onClick={handleAnswerSubmit}
+              >
+                Submit
+              </Button>
+            </Card>
+            
+            <CheckpointQuestion 
+              sectionId="3.2" 
+              onComplete={(completed) => handleSectionComplete("3.2", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
+              onIncorrectAnswer={handleIncorrectAnswer}
+            />
+            
+            {completedSections["3.2"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      case "3.3":
+        return (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Text Vectorization Implementation</h2>
+            <p className="text-gray-700 mb-4">
+              Now that we understand the theory behind text vectorization, let's look at how to implement these techniques in practice.
+            </p>
+            <Card className="p-4 mb-6">
+              <h3 className="font-medium mb-2">Implementing Bag of Words (BOW)</h3>
+              <p className="text-gray-700 mb-2">
+                The Bag of Words model represents text as a "bag" of its words, disregarding grammar and word order but keeping track of word frequency.
+              </p>
+              <div className="bg-gray-100 p-3 rounded-md">
+                <pre className="text-sm">
+{`from sklearn.feature_extraction.text import CountVectorizer
+
+# Create a CountVectorizer instance
+vectorizer = CountVectorizer()
+
+# Example messages
+messages = [
+    "Hello how are you",
+    "I am fine thank you",
+    "Hello thank you"
+]
+
+# Transform the messages into vectors
+X = vectorizer.fit_transform(messages)
+
+# Get the feature names (words)
+feature_names = vectorizer.get_feature_names_out()
+
+# Print the feature names and the vectors
+print("Feature names:", feature_names)
+print("Vectors:", X.toarray())`}
+                </pre>
+              </div>
+            </Card>
+            <Card className="p-4 mb-6">
+              <h3 className="font-medium mb-2">Implementing TF-IDF</h3>
+              <p className="text-gray-700 mb-2">
+                TF-IDF (Term Frequency-Inverse Document Frequency) weighs the frequency of a word in a document against its frequency across all documents.
+              </p>
+              <div className="bg-gray-100 p-3 rounded-md">
+                <pre className="text-sm">
+{`from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Create a TfidfVectorizer instance
+vectorizer = TfidfVectorizer()
+
+# Example messages
+messages = [
+    "Hello how are you",
+    "I am fine thank you",
+    "Hello thank you"
+]
+
+# Transform the messages into vectors
+X = vectorizer.fit_transform(messages)
+
+# Get the feature names (words)
+feature_names = vectorizer.get_feature_names_out()
+
+# Print the feature names and the vectors
+print("Feature names:", feature_names)
+print("Vectors:", X.toarray())`}
+                </pre>
+              </div>
+            </Card>
+            
+            <CheckpointQuestion 
+              sectionId="3.3" 
+              onComplete={(completed) => handleSectionComplete("3.3", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
+              onIncorrectAnswer={handleIncorrectAnswer}
+            />
+            
+            {completedSections["3.3"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      case "4.1":
+        return (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Building & Training Models Background</h2>
+            <p className="text-gray-700 mb-4">
+              After vectorizing our text data, we can now build and train machine learning models to classify messages as spam or ham. There are various algorithms that can be used for this task.
+            </p>
+            <Card className="p-4 mb-6">
+              <h3 className="font-medium mb-2">Common Classification Algorithms</h3>
+              <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                <li>
+                  <strong>Naive Bayes</strong>: A probabilistic classifier based on Bayes' theorem. It's particularly effective for text classification.
+                </li>
+                <li>
+                  <strong>Support Vector Machines (SVM)</strong>: A powerful algorithm that finds the optimal hyperplane to separate classes.
+                </li>
+                <li>
+                  <strong>Logistic Regression</strong>: A statistical model that uses a logistic function to model a binary dependent variable.
+                </li>
+                <li>
+                  <strong>Random Forest</strong>: An ensemble learning method that constructs multiple decision trees and outputs the class that is the mode of the classes of the individual trees.
+                </li>
+                <li>
+                  <strong>Neural Networks</strong>: Deep learning models that can capture complex patterns in the data.
+                </li>
+              </ul>
+            </Card>
+            
+            <CheckpointQuestion 
+              sectionId="4.1" 
+              onComplete={(completed) => handleSectionComplete("4.1", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
+              onIncorrectAnswer={handleIncorrectAnswer}
+            />
+            
+            {completedSections["4.1"] && (
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  onClick={handleNextSection}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  Next Section
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      case "4.2":
+        return (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Building & Training Models Concept & Theory</h2>
+            <p className="text-gray-700 mb-4">
+              When building a machine learning model for spam classification, we need to consider several factors such as model selection, training process, and evaluation metrics.
+            </p>
+            <Card className="p-4 mb-6">
+              <h3 className="font-medium mb-2">Model Selection</h3>
+              <p className="text-gray-700 mb-2">
+                The choice of model depends on various factors:
+              </p>
+              <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                <li>The size and nature of the dataset</li>
+                <li>The complexity of the classification task</li>
+                <li>The computational resources available</li>
+                <li>The interpretability requirements</li>
+              </ul>
+            </Card>
+            <Card className="p-4 mb-6">
+              <h3 className="font-medium mb-2">Training Process</h3>
+              <p className="text-gray-700 mb-2">
+                The training process typically involves:
+              </p>
+              <ol className="list-decimal pl-5 space-y-1 text-gray-700">
+                <li>Splitting the data into training and testing sets</li>
+                <li>Fitting the model on the training data</li>
+                <li>Tuning hyperparameters using techniques like cross-validation</li>
+                <li>Evaluating the model on the testing data</li>
+              </ol>
+            </Card>
+            <Card className="p-4 mb-6">
+              <h3 className="font-medium mb-2">Evaluation Metrics</h3>
+              <p className="text-gray-700 mb-2">
+                Common metrics for evaluating classification models:
+              </p>
+              <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                <li>
+                  <strong>Accuracy</strong>: The proportion of correct predictions among the total number of predictions.
+                </li>
+                <li>
+                  <strong>Precision</strong>: The proportion of true positive predictions among all positive predictions.
+                </li>
+                <li>
+                  <strong>Recall</strong>: The proportion of true positive predictions among all actual positives.
+                </li>
+                <li>
+                  <strong>F1-score</strong>: The harmonic mean of precision and recall.
+                </li>
+                <li>
+                  <strong>ROC-AUC</strong>: The area under the Receiver Operating Characteristic curve.
+                </li>
+              </ul>
+            </Card>
+            
+            <CheckpointQuestion 
+              sectionId="4.2" 
+              onComplete={(completed) => handleSectionComplete("4.2", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
+              onIncorrectAnswer={handleIncorrectAnswer}
+            />
+            
+            {completedSections["4.2"] && (
+              <div className="mt-6">
+                <Card className="p-6 bg-green-50">
+                  <h3 className="text-xl font-medium text-green-700 mb-2">Congratulations!</h3>
+                  <p className="text-green-700">
+                    You have completed all sections of this course on spam classification. You now have a solid understanding of text preprocessing, vectorization techniques, and machine learning models for text classification.
+                  </p>
+                </Card>
+              </div>
+            )}
+          </div>
+        );
+      default:
+        return (
+          <div className="text-center p-10">
+            <p className="text-gray-500">Select a section from the navigation menu to view content.</p>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Left sidebar */}
+      <div className="w-64 bg-white border-r border-gray-200 p-4">
+        <h1 className="font-bold text-xl mb-4">Spam Classification</h1>
+        
+        <div className="space-y-4">
+          <div>
+            <div 
+              className="flex items-center text-sm mb-2 cursor-pointer" 
+              onClick={() => toggleNavSection("1")}
+            >
+              <span className="mr-2">
+                {expandedNavSection === "1" ? 
+                  <ChevronDown size={14} /> : 
+                  <ChevronRight size={14} />
+                }
+              </span>
+              <span>Introduction</span>
+            </div>
+            {expandedNavSection === "1" && (
+              <div className="pl-6 space-y-1 text-sm text-gray-600">
+                <div 
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "1.1" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("1.1")}
+                >
+                  <span className="mr-1">
+                    {completedSections["1.1"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("1.1") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>1.1 Project background</span>
+                </div>
+                <div 
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "1.2" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("1.2")}
+                >
+                  <span className="mr-1">
+                    {completedSections["1.2"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("1.2") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>1.2 Concept & Theory</span>
+                </div>
+                <div 
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "1.3" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("1.3")}
+                >
+                  <span className="mr-1">
+                    {completedSections["1.3"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("1.3") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>1.3 Target</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div 
+              className="flex items-center text-sm mb-2 cursor-pointer" 
+              onClick={() => toggleNavSection("2")}
+            >
+              <span className="mr-2">
+                {expandedNavSection === "2" ? 
+                  <ChevronDown size={14} /> : 
+                  <ChevronRight size={14} />
+                }
+              </span>
+              <span>Data Processing</span>
+            </div>
+            {expandedNavSection === "2" && (
+              <div className="pl-6 space-y-1 text-sm text-gray-600">
+                <div 
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "2.1" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("2.1")}
+                >
+                  <span className="mr-1">
+                    {completedSections["2.1"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("2.1") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>2.1 Background</span>
+                </div>
+                <div 
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "2.2" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("2.2")}
+                >
+                  <span className="mr-1">
+                    {completedSections["2.2"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("2.2") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>2.2 Data Collection and Observation</span>
+                </div>
+                <div 
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "2.3" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("2.3")}
+                >
+                  <span className="mr-1">
+                    {completedSections["2.3"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("2.3") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>2.3 Data processing</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div 
+              className="flex items-center text-sm mb-2 font-medium cursor-pointer" 
+              onClick={() => toggleNavSection("3")}
+            >
+              <span className="mr-2">
+                {expandedNavSection === "3" ? 
+                  <ChevronDown size={14} /> : 
+                  <ChevronRight size={14} />
+                }
+              </span>
+              <span>Text Vectorization</span>
+            </div>
+            {expandedNavSection === "3" && (
+              <div className="pl-6 space-y-1 text-sm text-gray-600">
+                <div 
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "3.1" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("3.1")}
+                >
+                  <span className="mr-1">
+                    {completedSections["3.1"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("3.1") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>3.1 Background</span>
+                </div>
+                <div 
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "3.2" ? "text-blue-500 font-medium" : ""}`}
+                  onClick={() => handleNavItemClick("3.2")}
+                >
+                  <span className="mr-1">
+                    {completedSections["3.2"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("3.2") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>3.2 Concept & Theory</span>
+                </div>
+                <div 
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "3.3" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("3.3")}
+                >
+                  <span className="mr-1">
+                    {completedSections["3.3"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("3.3") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>3.3 Implementation</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div 
+              className="flex items-center text-sm mb-2 cursor-pointer" 
+              onClick={() => toggleNavSection("4")}
+            >
+              <span className="mr-2">
+                {expandedNavSection === "4" ? 
+                  <ChevronDown size={14} /> : 
+                  <ChevronRight size={14} />
+                }
+              </span>
+              <span>Building & training models</span>
+            </div>
+            {expandedNavSection === "4" && (
+              <div className="pl-6 space-y-1 text-sm text-gray-600">
+                <div 
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "4.1" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("4.1")}
+                >
+                  <span className="mr-1">
+                    {completedSections["4.1"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("4.1") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>4.1 Background</span>
+                </div>
+                <div 
+                  className={`flex items-center cursor-pointer hover:text-blue-500 ${activeSection === "4.2" ? "text-blue-500" : ""}`}
+                  onClick={() => handleNavItemClick("4.2")}
+                >
+                  <span className="mr-1">
+                    {completedSections["4.2"] ? 
+                      <CheckCircle2 size={12} className="text-green-500" /> : 
+                      isSectionAccessible("4.2") ? null : <Lock size={12} />
+                    }
+                  </span>
+                  <span>4.2 Concept & Theory</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button className="text-blue-500 mt-4 flex items-center">
+            <ArrowLeft size={14} className="mr-1" /> Return
+          </button>
         </div>
-      )}
-    </Card>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 p-6 overflow-y-auto">
+        <div className="max-w-3xl mx-auto">
+          {/* API状态指示器 */}
+          <ApiStatus />
+          
+          {renderContent()}
+        </div>
+      </div>
+
+      {/* Right sidebar - 聊天界面 */}
+      <div className="w-72 bg-white border-l border-gray-200 p-4 flex flex-col h-screen">
+        <div className="mb-4">
+          <Button 
+            className="bg-blue-500 hover:bg-blue-600 text-xs w-full"
+            onClick={handleNewChat}
+          >
+            New Chat
+          </Button>
+        </div>
+        
+        {/* 聊天界面 */}
+        <div className="flex-1 flex flex-col">
+          <ChatInterface 
+            key={chatKey} 
+            title="ChatBot Assistant" 
+            onNewChat={handleNewChat}
+            currentSection={activeSection}
+            sectionContent={currentSectionContent}
+            lastCheckpointQuestion={lastCheckpointQuestion || undefined}
+            userChoices={userChoices}
+            sessionId={sessionId}
+            autoMessages={autoMessages}
+            onAutoMessageProcessed={(messageId) => {
+              // 从队列中移除已处理的消息
+              setAutoMessages(prev => prev.filter(msg => msg.id !== messageId));
+            }}
+          />
+        </div>
+      </div>
+    </div>
   );
 };
 
-export default CheckpointQuestion;
+export default Index;

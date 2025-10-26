@@ -104,6 +104,17 @@ const ChatInterface = ({
         setProcessingAutoMessage(true);
         const nextMessage = autoMessages[0];
         
+        // 创建用户消息
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          content: nextMessage.content,
+          isUser: true,
+          timestamp: new Date()
+        };
+        
+        // 添加用户消息到聊天记录
+        setMessages(prev => [...prev, userMessage]);
+        
         // 发送自动消息
         await sendMessageToAPI(nextMessage.content);
         
