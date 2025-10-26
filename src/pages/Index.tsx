@@ -1314,15 +1314,6 @@ print("Vectors:", X.toarray())`}
 
       {/* Right sidebar - 聊天界面 */}
       <div className="w-72 bg-white border-l border-gray-200 p-4 flex flex-col h-screen">
-        <div className="mb-4">
-          <Button 
-            className="bg-blue-500 hover:bg-blue-600 text-xs w-full"
-            onClick={handleNewChat}
-          >
-            New Chat
-          </Button>
-        </div>
-        
         {/* 聊天界面 */}
         <div className="flex-1 flex flex-col">
           <ChatInterface 
