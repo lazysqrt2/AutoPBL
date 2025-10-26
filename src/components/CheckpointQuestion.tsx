@@ -20,9 +20,16 @@ interface QuestionData {
 interface CheckpointQuestionProps {
   sectionId: string;
   onComplete?: (completed: boolean) => void;
+  sessionId?: string;
+  sectionContent?: string;
 }
 
-const CheckpointQuestion = ({ sectionId, onComplete }: CheckpointQuestionProps) => {
+const CheckpointQuestion = ({ 
+  sectionId, 
+  onComplete, 
+  sessionId, 
+  sectionContent = "" 
+}: CheckpointQuestionProps) => {
   const [question, setQuestion] = useState<string>("");
   const [options, setOptions] = useState<Option[]>([]);
   const [correctAnswerId, setCorrectAnswerId] = useState<string>("");
@@ -30,6 +37,7 @@ const CheckpointQuestion = ({ sectionId, onComplete }: CheckpointQuestionProps) 
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
 
   // 获取检查点问题
   const fetchQuestion = async () => {
@@ -91,8 +99,54 @@ const CheckpointQuestion = ({ sectionId, onComplete }: CheckpointQuestionProps) 
     fetchQuestion();
   }, [sectionId]);
 
+  // 创建章节总结
+  const createSectionSummary = async () => {
+    if (!sessionId) {
+      console.warn("Cannot create summary: No session ID provided");
+      return;
+    }
+    
+    setIsSummarizing(true);
+    
+    try {
+      // 构建检查点问题数据
+      const checkpointQuestion = {
+        question,
+        options,
+        correctAnswerId
+      };
+      
+      // 调用summary API
+      const response = await fetch("/api/summary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId,
+          sectionId,
+          sectionContent,
+          checkpointQuestion,
+          userAnswer: selectedOption,
+          isCorrect: isCorrect
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Summary created successfully:", data.summary);
+      } else {
+        console.warn("Failed to create summary:", await response.text());
+      }
+    } catch (error) {
+      console.error("Error creating section summary:", error);
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
   // 提交答案
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedOption) return;
     
     const correct = selectedOption === correctAnswerId;
@@ -101,6 +155,10 @@ const CheckpointQuestion = ({ sectionId, onComplete }: CheckpointQuestionProps) 
     
     if (correct) {
       showSuccess("Correct answer! You can now proceed to the next section.");
+      
+      // 创建章节总结
+      await createSectionSummary();
+      
       // 通知父组件问题已完成
       if (onComplete) {
         onComplete(true);
@@ -307,10 +365,17 @@ const CheckpointQuestion = ({ sectionId, onComplete }: CheckpointQuestionProps) 
       
       <Button 
         onClick={handleSubmit} 
-        disabled={!selectedOption || isSubmitted}
+        disabled={!selectedOption || isSubmitted || isSummarizing}
         className="bg-blue-500 hover:bg-blue-600"
       >
-        Submit Answer
+        {isSummarizing ? (
+          <>
+            <Loader2 className="animate-spin mr-2" size={16} />
+            Processing...
+          </>
+        ) : (
+          "Submit Answer"
+        )}
       </Button>
       
       {isSubmitted && (

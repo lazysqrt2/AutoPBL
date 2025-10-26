@@ -31,6 +31,7 @@ interface ChatInterfaceProps {
   sectionContent?: string;
   lastCheckpointQuestion?: CheckpointQuestion;
   userChoices?: Record<string, any>;
+  sessionId?: string;
 }
 
 const ChatInterface = ({ 
@@ -40,17 +41,25 @@ const ChatInterface = ({
   currentSection,
   sectionContent,
   lastCheckpointQuestion,
-  userChoices = {}
+  userChoices = {},
+  sessionId: propSessionId
 }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string>(() => {
-    // 生成一个随机的会话ID
-    return Date.now().toString() + Math.random().toString(36).substring(2, 9);
+    // 使用props中的sessionId，如果没有则生成一个新的
+    return propSessionId || Date.now().toString() + Math.random().toString(36).substring(2, 9);
   });
   const [apiStatus, setApiStatus] = useState<"unknown" | "connected" | "error">("unknown");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // 当props中的sessionId变化时，更新本地的sessionId
+  useEffect(() => {
+    if (propSessionId) {
+      setSessionId(propSessionId);
+    }
+  }, [propSessionId]);
 
   // 自动滚动到最新消息
   useEffect(() => {
@@ -81,8 +90,8 @@ const ChatInterface = ({
   // 清空聊天历史并创建新会话
   const clearChatHistory = async () => {
     try {
-      // 创建新的会话ID
-      const newSessionId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+      // 创建新的会话ID，如果props中没有提供的话
+      const newSessionId = propSessionId || Date.now().toString() + Math.random().toString(36).substring(2, 9);
       
       try {
         // 调用API通知后端创建新会话
@@ -108,8 +117,10 @@ const ChatInterface = ({
       
       // 清空消息历史
       setMessages([]);
-      // 更新会话ID
-      setSessionId(newSessionId);
+      // 更新会话ID（如果props中没有提供的话）
+      if (!propSessionId) {
+        setSessionId(newSessionId);
+      }
       showSuccess("New chat session started");
       
       // 如果有父组件的回调，则调用

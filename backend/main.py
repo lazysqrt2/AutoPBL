@@ -40,9 +40,21 @@ class SessionRequest(BaseModel):
 class CheckpointRequest(BaseModel):
     sectionId: str
 
+class SummaryRequest(BaseModel):
+    sessionId: str
+    sectionId: str
+    sectionContent: str
+    checkpointQuestion: Dict[str, Any]
+    userAnswer: Optional[str] = None
+    isCorrect: Optional[bool] = None
+
 # 存储会话历史的字典
 # 格式: {session_id: [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
 session_histories = {}
+
+# 存储章节总结的字典
+# 格式: {session_id: {section_id: "summary text"}}
+section_summaries = {}
 
 # 聊天API路由
 @app.post("/api/chat")
@@ -80,6 +92,10 @@ async def chat(request: ChatMessage):
     if request.currentSection and request.sectionContent:
         system_content += f"\nCurrent section: {request.currentSection}\n"
         system_content += f"Section content: {request.sectionContent}\n"
+    
+    # 添加章节总结（如果有）
+    if session_id in section_summaries and request.currentSection in section_summaries.get(session_id, {}):
+        system_content += f"\nSection summary: {section_summaries[session_id][request.currentSection]}\n"
     
     # 添加最近的检查点问题
     if request.lastCheckpointQuestion:
@@ -121,6 +137,7 @@ Requirements:
 6. Reference the current section content and checkpoint questions when relevant to provide more personalized help.
 7. If the user asks about their previous choices or answers, provide helpful feedback based on that information.
 8. Remember the conversation history and refer back to previous questions and answers when appropriate.
+9. If there's a section summary available, use it to provide more targeted and relevant responses.
 """
     
     # 添加用户消息到会话历史
@@ -216,6 +233,114 @@ async def checkpoint(request: CheckpointRequest):
     question_data = get_question_for_section(request.sectionId)
     
     return question_data
+
+# 章节总结API
+@app.post("/api/summary")
+async def create_summary(request: SummaryRequest):
+    if not request.sessionId or not request.sectionId or not request.sectionContent or not request.checkpointQuestion:
+        raise HTTPException(status_code=400, detail="Missing required fields")
+    
+    # 从环境变量获取API密钥和URL
+    api_key = os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1/chat/completions")
+    
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Server configuration error: API Key is missing")
+    
+    # 构建提示，要求AI总结章节内容和检查点问题
+    prompt = f"""
+Please summarize the following section content and checkpoint question. 
+This summary will be used to provide context for future conversations with the user.
+
+Section ID: {request.sectionId}
+
+Section Content:
+{request.sectionContent}
+
+Checkpoint Question:
+{request.checkpointQuestion['question']}
+
+Options:
+"""
+    
+    for option in request.checkpointQuestion['options']:
+        is_correct = option['id'] == request.checkpointQuestion['correctAnswerId']
+        prompt += f"- {option['id']}: {option['text']} {'(correct)' if is_correct else ''}\n"
+    
+    if request.userAnswer:
+        prompt += f"\nUser's answer: {request.userAnswer}\n"
+        if request.isCorrect is not None:
+            prompt += f"User's answer was {'correct' if request.isCorrect else 'incorrect'}.\n"
+    
+    prompt += """
+Please provide a concise summary (around 3-5 sentences) that captures:
+1. The key concepts from the section
+2. The main point of the checkpoint question
+3. How the checkpoint question relates to the section content
+
+The summary should be informative enough to provide context for future discussions, but brief enough to be easily referenced.
+"""
+    
+    # 构造请求体
+    api_request_body = {
+        "model": "gpt-3.5-turbo",
+        "messages": [
+            {"role": "system", "content": "You are an expert educational content summarizer."},
+            {"role": "user", "content": prompt}
+        ]
+    }
+    
+    try:
+        # 调用API
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                base_url,
+                json=api_request_body,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}"
+                },
+                timeout=30.0
+            )
+            
+            response.raise_for_status()
+            
+            data = response.json()
+            summary = data["choices"][0]["message"]["content"] if "choices" in data and len(data["choices"]) > 0 else "No summary available."
+            
+            # 存储总结
+            if request.sessionId not in section_summaries:
+                section_summaries[request.sessionId] = {}
+            
+            section_summaries[request.sessionId][request.sectionId] = summary
+            
+            # 将总结作为系统消息添加到会话历史中
+            if request.sessionId not in session_histories:
+                session_histories[request.sessionId] = []
+            
+            system_message = {
+                "role": "system", 
+                "content": f"Section {request.sectionId} Summary: {summary}"
+            }
+            
+            # 添加系统消息到会话历史
+            session_histories[request.sessionId].append(system_message)
+            
+            return {
+                "success": True,
+                "summary": summary,
+                "message": f"Summary created for section {request.sectionId}"
+            }
+    
+    except httpx.HTTPStatusError as e:
+        print(f"HTTP Status Error: {e.response.status_code} - {e.response.text}")
+        raise HTTPException(status_code=e.response.status_code, detail=f"API call failed: {e.response.text}")
+    except httpx.RequestError as e:
+        print(f"Request Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
+    except Exception as e:
+        print(f"Unexpected Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 # 获取章节问题的辅助函数
 def get_question_for_section(section_id: str) -> Dict[str, Any]:

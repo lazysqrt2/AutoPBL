@@ -41,6 +41,10 @@ const Index = () => {
   const [currentSectionContent, setCurrentSectionContent] = useState<string>("");
   const [lastCheckpointQuestion, setLastCheckpointQuestion] = useState<CheckpointQuestion | null>(null);
   const [userChoices, setUserChoices] = useState<Record<string, any>>({});
+  const [sessionId, setSessionId] = useState<string>(() => {
+    // 生成一个随机的会话ID
+    return Date.now().toString() + Math.random().toString(36).substring(2, 9);
+  });
   
   // 章节完成状态
   const [completedSections, setCompletedSections] = useState<Record<string, boolean>>({
@@ -233,10 +237,13 @@ const Index = () => {
   // 处理新聊天按钮点击
   const handleNewChat = async () => {
     try {
+      // 生成新的会话ID
+      const newSessionId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+      setSessionId(newSessionId);
+      
       // 增加key值，强制重新渲染ChatInterface组件
       setChatKey(prevKey => prevKey + 1);
       
-      // 这里可以添加其他需要的逻辑，比如更新UI状态等
       showSuccess("Started a new chat session");
     } catch (error) {
       console.error("Error starting new chat:", error);
@@ -376,7 +383,9 @@ const Index = () => {
             
             <CheckpointQuestion 
               sectionId="1.1" 
-              onComplete={(completed) => handleSectionComplete("1.1", completed)} 
+              onComplete={(completed) => handleSectionComplete("1.1", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
             />
             
             {completedSections["1.1"] && (
@@ -424,7 +433,9 @@ const Index = () => {
             
             <CheckpointQuestion 
               sectionId="1.2" 
-              onComplete={(completed) => handleSectionComplete("1.2", completed)} 
+              onComplete={(completed) => handleSectionComplete("1.2", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
             />
             
             {completedSections["1.2"] && (
@@ -459,7 +470,9 @@ const Index = () => {
             
             <CheckpointQuestion 
               sectionId="1.3" 
-              onComplete={(completed) => handleSectionComplete("1.3", completed)} 
+              onComplete={(completed) => handleSectionComplete("1.3", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
             />
             
             {completedSections["1.3"] && (
@@ -497,7 +510,9 @@ const Index = () => {
             
             <CheckpointQuestion 
               sectionId="2.1" 
-              onComplete={(completed) => handleSectionComplete("2.1", completed)} 
+              onComplete={(completed) => handleSectionComplete("2.1", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
             />
             
             {completedSections["2.1"] && (
@@ -553,7 +568,9 @@ const Index = () => {
             
             <CheckpointQuestion 
               sectionId="2.2" 
-              onComplete={(completed) => handleSectionComplete("2.2", completed)} 
+              onComplete={(completed) => handleSectionComplete("2.2", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
             />
             
             {completedSections["2.2"] && (
@@ -601,7 +618,9 @@ const Index = () => {
             
             <CheckpointQuestion 
               sectionId="2.3" 
-              onComplete={(completed) => handleSectionComplete("2.3", completed)} 
+              onComplete={(completed) => handleSectionComplete("2.3", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
             />
             
             {completedSections["2.3"] && (
@@ -638,7 +657,9 @@ const Index = () => {
             
             <CheckpointQuestion 
               sectionId="3.1" 
-              onComplete={(completed) => handleSectionComplete("3.1", completed)} 
+              onComplete={(completed) => handleSectionComplete("3.1", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
             />
             
             {completedSections["3.1"] && (
@@ -768,7 +789,9 @@ const Index = () => {
             
             <CheckpointQuestion 
               sectionId="3.2" 
-              onComplete={(completed) => handleSectionComplete("3.2", completed)} 
+              onComplete={(completed) => handleSectionComplete("3.2", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
             />
             
             {completedSections["3.2"] && (
@@ -855,7 +878,9 @@ print("Vectors:", X.toarray())`}
             
             <CheckpointQuestion 
               sectionId="3.3" 
-              onComplete={(completed) => handleSectionComplete("3.3", completed)} 
+              onComplete={(completed) => handleSectionComplete("3.3", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
             />
             
             {completedSections["3.3"] && (
@@ -900,7 +925,9 @@ print("Vectors:", X.toarray())`}
             
             <CheckpointQuestion 
               sectionId="4.1" 
-              onComplete={(completed) => handleSectionComplete("4.1", completed)} 
+              onComplete={(completed) => handleSectionComplete("4.1", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
             />
             
             {completedSections["4.1"] && (
@@ -972,7 +999,9 @@ print("Vectors:", X.toarray())`}
             
             <CheckpointQuestion 
               sectionId="4.2" 
-              onComplete={(completed) => handleSectionComplete("4.2", completed)} 
+              onComplete={(completed) => handleSectionComplete("4.2", completed)}
+              sessionId={sessionId}
+              sectionContent={currentSectionContent}
             />
             
             {completedSections["4.2"] && (
@@ -1248,6 +1277,7 @@ print("Vectors:", X.toarray())`}
             sectionContent={currentSectionContent}
             lastCheckpointQuestion={lastCheckpointQuestion || undefined}
             userChoices={userChoices}
+            sessionId={sessionId}
           />
         </div>
       </div>
