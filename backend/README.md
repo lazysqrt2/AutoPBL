@@ -30,7 +30,7 @@ pip install -r requirements.txt
 
 ### 配置环境变量
 
-复制`.env.example`文件并重命名为`.env`，然后填写必要的环境变量：
+复制 `.env.example`文件并重命名为 `.env`，然后填写必要的环境变量：
 
 ```
 OPENAI_API_KEY=your_api_key_here
@@ -41,30 +41,13 @@ PORT=8000
 ### 启动服务器
 
 ```bash
-uvicorn main:app --reload
+python main.py
 ```
 
 服务器将在 http://localhost:8000 上运行。
-
-### 使用Docker
-
-```bash
-# 构建Docker镜像
-docker build -t learning-platform-backend .
-
-# 运行Docker容器
-docker run -p 8000:8000 --env-file .env learning-platform-backend
-```
 
 ## API端点
 
 - `POST /api/chat` - 发送消息到AI助手
 - `POST /api/chat/new` - 创建新的聊天会话
 - `POST /api/checkpoint` - 获取章节检查点问题
-
-## API文档
-
-启动服务器后，可以在以下地址访问自动生成的API文档：
-
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
